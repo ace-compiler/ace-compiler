@@ -13,7 +13,7 @@ docker run -it --name ace --privileged ace:latest bash
 ### 2. Build ACE compiler
 Under the container directory "/app", run:
 ```
-/app/scripts/build-cmplr.sh Release
+/app/scripts/build_cmplr.sh Release
 ```
 Then the ACE compler would be build under "/app/release" and install under dir "/app/ace_cmplr".
 
@@ -28,7 +28,7 @@ python3 /app/FHE-MP-CNN/build_cnn.py
 Expert source will be pulled to "/app/FHE-MP-CNN/FHE-MP-CNN", and executables will be built under "/app/FHE-MP-CNN/FHE-MP-CNN/cnn_ckks/build_cnn".
 
 
-#### 3.2 Run all ACE and EXPERT performance test in on command
+#### 3.2 Run all ACE and EXPERT performance test in one command
 Under the container directory "/app", run:
 ```
 python3 /app/scripts/perf.py -a
