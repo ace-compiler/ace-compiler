@@ -5,6 +5,7 @@ import sys
 import argparse
 import subprocess
 import datetime
+import signal
 
 def write_log(info, log):
     print(info[:-1])
@@ -15,6 +16,31 @@ def write_log(info, log):
 def time_and_memory(outputs):
     result = outputs.strip('"').split(' ')
     return result[0], result[1]
+
+def check_required_memory(rq_mem):
+    mem_info_file = '/proc/meminfo'
+    # If we don't know, run anyway
+    if not os.path.exists(mem_info_file):
+        print(mem_info_file, 'does not exist!')
+        return True
+    mem_info = open(mem_info_file, 'r')
+    total_mem = 0
+    free_mem = 0
+    for line in mem_info:
+        if line.find('MemTotal') != -1:
+            total_mem = int(line.split(':')[1].strip().split(' ')[0].strip())
+            total_mem /= 1000000
+        elif line.find('MemFree') != -1:
+            free_mem = int(line.split(':')[1].strip().split(' ')[0].strip())
+            free_mem /= 1000000
+    mem_info.close()
+    if total_mem > rq_mem:
+        if free_mem < rq_mem:
+            print('Warning: Not enough free memory,', rq_mem, 'GB is required')
+            return False
+        return True
+    print('Warning: Not enough memory,', rq_mem, 'GB is required')
+    return False
 
 def test_perf_fhe_mp_cnn(kpath, log, debug):
     os.chdir(kpath)
@@ -96,7 +122,10 @@ def test_perf_fhe_mp_cnn(kpath, log, debug):
                                 + str("%.2f" % (sum_time/1000)) + '(s) Count = ' + str(op_cnt[key]) + '\n'
                         write_log(info, log)
             else:
-                info = case + ': Failed!\n'
+                info = case + ': failed'
+                if ret.returncode > 128:
+                    info += ' due to ' + signal.Signals(ret.returncode - 128).name
+                info += '\n'
                 write_log(info, log)
     return
 
@@ -138,7 +167,7 @@ def ace_compile_and_run_onnx(cwd, cmplr_path, onnx_path, onnx_model, log, debug)
     cmds.extend(['-SIHE:relu_vr_def=2:relu_mul_depth=13', '-CKKS:sk_hw=192', '-o', onnx_c])
     # options for detailed time info
     cmds.extend(['-O2A:ts', '-FHE_SCHEME:ts', '-VEC:ts:rtt:conv_fast', '-SIHE:ts:rtt'])
-    cmds.extend(['-CKKS:ts', '-POLY:ts:rtt', '-P2C:ts'])
+    cmds.extend(['-CKKS:ts:q0=60:sf=56', '-POLY:ts:rtt', '-P2C:ts'])
     if debug:
         print(' '.join(cmds))
     if os.path.exists(wfile):
@@ -259,7 +288,10 @@ def ace_compile_and_run_onnx(cwd, cmplr_path, onnx_path, onnx_model, log, debug)
             for item in lib_info:
                 write_log(' ' * (len(onnx_model) + 8) + item + '\n', log)
     else:
-        info = 'Exec: failed\n'
+        info = 'Exec: failed'
+        if ret.returncode > 128:
+            info += ' due to ' + signal.Signals(ret.returncode - 128).name
+        info += '\n'
         write_log(info, log)
     return
 
@@ -284,6 +316,14 @@ def main():
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Print out debug info')
     args = parser.parse_args()
     debug = args.debug
+    # check memory requirement
+    mem_enough = False
+    if args.exp or args.all:
+        mem_enough = check_required_memory(320)
+    else:
+        mem_enough = check_required_memory(60)
+    if not mem_enough:
+        sys.exit(-1)
     # FHE-MP-CNN path
     kpath = '/app/FHE-MP-CNN/FHE-MP-CNN/cnn_ckks/build_cnn'
     cwd = os.getcwd()

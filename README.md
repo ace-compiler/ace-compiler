@@ -18,7 +18,7 @@ Under the container directory "/app", run:
 Then the ACE compler would be build under "/app/release" and install under dir "/app/ace_cmplr".
 
 ### 3. Run performance tests for compilation time, run time and runtime memory consumption
-Note: given hardward setups, it would take around 5 hours to complete ACE only tests in single thread, and it would take around 13 hours to complete EXPERT only tests in single thread.
+Note: given hardward setups, it would take around 5 hours to complete ACE only tests in single thread, and it would take around 13 hours to complete EXPERT only tests in single thread. Running EXPERT tests (-a or -e options below) require more than 300GB memory, it is recommanded to run on machine with at least 400GB memory.
 
 #### 3.1 Build EXPERT program
 Under the container directory "/app", run:
@@ -33,7 +33,7 @@ Under the container directory "/app", run:
 ```
 python3 /app/scripts/perf.py -a
 ```
-A log named with the date the command line is launched is generated, for example '2024_05_26_13_18.log'. Run:
+A log named with the date the command line is launched is generated, for example '2024_05_26_13_18.log'. You can refer to the log for the performance data or the failure info. For example, if you see a "failed due to SIGKILL", it's quite possible that your are run out of memory for an EXPERT case. If you succeed, run:
 ```
 python3 /app/scripts/generate_figures.py -f 2024_05_26_13_18.log
 ```

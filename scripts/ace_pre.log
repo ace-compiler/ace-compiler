@@ -8,7 +8,7 @@ resnet110_cifar10_train.onnx:
                                    CKKS = 0.525 / 2.291(s)
                                    POLY = 0.520 / 2.811(s)
                                    POLY2C = 0.908 / 3.719(s)
-                              Exec: Time = 7531.12(s) TotalMemory = 44.8(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 98.4(Gb) WeightCnt = 36464 N = 65536 q0 = 60 Delta = 59
+                              Exec: Time = 7531.12(s) TotalMemory = 44.8(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 98.4(Gb) WeightCnt = 36464 N = 65536 q0 = 60 Delta = 56
                                     Tensor::conv = 1555.80 / 1555.80(s) Count = 111
                                     FHE::bootstrap = 4928.27 / 6484.07(s) Count = 109
                                     FHE::relu = 844.88 / 7328.95(s) Count = 109
@@ -25,7 +25,7 @@ resnet20_cifar10_pre.onnx:
                                 CKKS = 0.105 / 0.475(s)
                                 POLY = 0.106 / 0.582(s)
                                 POLY2C = 0.471 / 1.053(s)
-                           Exec: Time = 1453.96(s) TotalMemory = 44.0(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 18.7(Gb) WeightCnt = 6044 N = 65536 q0 = 60 Delta = 59
+                           Exec: Time = 1453.96(s) TotalMemory = 44.0(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 18.7(Gb) WeightCnt = 6044 N = 65536 q0 = 60 Delta = 56
                                  Tensor::conv = 324.11 / 324.11(s) Count = 21
                                  FHE::bootstrap = 784.03 / 1108.15(s) Count = 19
                                  FHE::relu = 162.09 / 1270.24(s) Count = 19
@@ -42,7 +42,7 @@ resnet32_cifar100_pre.onnx:
                                  CKKS = 0.160 / 0.715(s)
                                  POLY = 0.160 / 0.875(s)
                                  POLY2C = 0.530 / 1.405(s)
-                            Exec: Time = 2327.27(s) TotalMemory = 54.6(Gb) KeyMemory = 45.2(Gb) RotKeyMem = 45.0(Gb) RotKeyCnt = 298 WeightMem = 29.5(Gb) WeightCnt = 10190 N = 65536 q0 = 60 Delta = 59
+                            Exec: Time = 2327.27(s) TotalMemory = 54.6(Gb) KeyMemory = 45.2(Gb) RotKeyMem = 45.0(Gb) RotKeyCnt = 298 WeightMem = 29.5(Gb) WeightCnt = 10190 N = 65536 q0 = 60 Delta = 56
                                   Tensor::conv = 485.17 / 485.17(s) Count = 33
                                   FHE::bootstrap = 1343.05 / 1828.22(s) Count = 31
                                   FHE::relu = 253.05 / 2081.27(s) Count = 31
@@ -59,7 +59,7 @@ resnet32_cifar10_pre.onnx:
                                 CKKS = 0.157 / 0.711(s)
                                 POLY = 0.157 / 0.867(s)
                                 POLY2C = 0.528 / 1.396(s)
-                           Exec: Time = 2259.27(s) TotalMemory = 44.1(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 29.3(Gb) WeightCnt = 10100 N = 65536 q0 = 60 Delta = 59
+                           Exec: Time = 2259.27(s) TotalMemory = 44.1(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 29.3(Gb) WeightCnt = 10100 N = 65536 q0 = 60 Delta = 56
                                  Tensor::conv = 480.70 / 480.70(s) Count = 33
                                  FHE::bootstrap = 1343.10 / 1823.80(s) Count = 31
                                  FHE::relu = 251.31 / 2075.11(s) Count = 31
@@ -76,7 +76,7 @@ resnet44_cifar10_pre.onnx:
                                 CKKS = 0.212 / 0.962(s)
                                 POLY = 0.216 / 1.178(s)
                                 POLY2C = 0.592 / 1.770(s)
-                           Exec: Time = 3044.98(s) TotalMemory = 44.2(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 39.9(Gb) WeightCnt = 14156 N = 65536 q0 = 60 Delta = 59
+                           Exec: Time = 3044.98(s) TotalMemory = 44.2(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 39.9(Gb) WeightCnt = 14156 N = 65536 q0 = 60 Delta = 56
                                  Tensor::conv = 641.14 / 641.14(s) Count = 45
                                  FHE::bootstrap = 1877.22 / 2518.36(s) Count = 43
                                  FHE::relu = 339.39 / 2857.76(s) Count = 43
@@ -93,7 +93,7 @@ resnet56_cifar10_pre.onnx:
                                 CKKS = 0.271 / 1.224(s)
                                 POLY = 0.271 / 1.495(s)
                                 POLY2C = 0.648 / 2.143(s)
-                           Exec: Time = 3907.68(s) TotalMemory = 44.3(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 50.6(Gb) WeightCnt = 18212 N = 65536 q0 = 60 Delta = 59
+                           Exec: Time = 3907.68(s) TotalMemory = 44.3(Gb) KeyMemory = 34.5(Gb) RotKeyMem = 34.3(Gb) RotKeyCnt = 227 WeightMem = 50.6(Gb) WeightCnt = 18212 N = 65536 q0 = 60 Delta = 56
                                  Tensor::conv = 812.30 / 812.30(s) Count = 57
                                  FHE::bootstrap = 2460.14 / 3272.44(s) Count = 55
                                  FHE::relu = 440.36 / 3712.81(s) Count = 55

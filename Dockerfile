@@ -26,8 +26,7 @@ RUN apt-get update && \
                         libntl-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip3 install torch==2.0.1 && \
+RUN pip3 install torch==2.0.1 && \
     pip3 install onnx==1.14.1 && \
     pip3 install onnxruntime==1.15.1 && \
     pip3 install matplotlib==3.7.5 && \

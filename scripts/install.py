@@ -4,7 +4,6 @@ print("install package ...")
 
 # check pip package: yml, onnx
 print("\ncheck pip package ...")
-os.system("pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/")
 os.system("pip3 install -r requirements.txt")
 
 # install cifar-10, cifar-100 dataset ...
