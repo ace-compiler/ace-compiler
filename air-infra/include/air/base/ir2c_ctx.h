@@ -10,6 +10,7 @@
 #define AIR_BASE_IR2C_CTX_H
 
 #include <iomanip>
+#include <limits>
 #include <ostream>
 #include <unordered_set>
 

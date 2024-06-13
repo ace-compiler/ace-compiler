@@ -22,18 +22,18 @@ namespace vector {
 using PREG_MAP = std::unordered_map<uint32_t, uint32_t>;
 
 // For node tracing
-auto Trace_node = [](std::ostream& os, air::base::NODE_PTR op) {
+const auto Trace_node = [](std::ostream& os, air::base::NODE_PTR op) {
   op->Print_tree(os, true, 0);
 };
 
 // For constant float array tracing
-auto Trace_float_array = [](std::ostream& os, air::base::CONSTANT_PTR vconst,
+const auto Trace_float_array = [](std::ostream& os, air::base::CONSTANT_PTR vconst,
                             std::string msg) {
   Print_array_const<float>(os, vconst, msg);
 };
 
 // For constant int array tracing
-auto Trace_int_array = [](std::ostream& os, air::base::CONSTANT_PTR vconst,
+const auto Trace_int_array = [](std::ostream& os, air::base::CONSTANT_PTR vconst,
                           std::string msg) {
   Print_array_const<int>(os, vconst, msg);
 };
