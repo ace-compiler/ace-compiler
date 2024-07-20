@@ -27,6 +27,7 @@ typedef struct PT_MGR {
   uint32_t             _ent_invalid;
   uint32_t             _ent_count;
   uint32_t             _prefetch_count;
+  bool                 _sync_read;
 } PT_MGR;
 
 static PT_MGR Pt_mgr;
@@ -43,13 +44,18 @@ bool Pt_mgr_init(const char* fname) {
   if (pf_env == NULL || (pf_count = atoi(pf_env)) < 0) {
     pf_count = 2;
   }
-
+  bool        sync_read = false;
+  const char* sr_env    = getenv(ENV_RT_DATA_ASYNC_READ);
+  if (sr_env == NULL || atoi(sr_env) != 1) {
+    sync_read = true;
+  }
   // Initialize block io
-  if (Block_io_init() == false) {
+  if (Block_io_init(sync_read) == false) {
     return false;
   }
 
-  Pt_mgr._file = Rt_data_open(fname);
+  Pt_mgr._sync_read = sync_read;
+  Pt_mgr._file      = Rt_data_open(fname, sync_read);
   if (Pt_mgr._file == NULL) {
     return false;
   }
@@ -100,7 +106,7 @@ void Pt_mgr_fini() {
   if (Pt_mgr._pt_entry) {
     free(Pt_mgr._pt_entry);
   }
-  Block_io_fini();
+  Block_io_fini(Pt_mgr._sync_read);
 }
 
 static inline uint32_t Get_slot(uint32_t pt_idx) {
@@ -115,7 +121,8 @@ void Pt_prefetch(uint32_t pt_idx) {
           "BLOCK_INFO state is not invalid");
   Pt_mgr._pt_entry[slot]._blk_idx       = pt_idx;
   Pt_mgr._pt_entry[slot]._iovec.iov_len = Pt_mgr._pt_size;
-  Rt_data_prefetch(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot]);
+  Rt_data_prefetch(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot],
+                   Pt_mgr._sync_read);
 }
 
 void* Pt_get(uint32_t pt_idx, size_t len, uint32_t scale, uint32_t level) {
@@ -131,11 +138,13 @@ void* Pt_get(uint32_t pt_idx, size_t len, uint32_t scale, uint32_t level) {
           "BLOCK_INFO pt_idx mismatch");
   if (Pt_mgr._pt_entry[slot]._blk_sts == BLK_INVALID) {
     Pt_mgr._pt_entry[slot]._blk_idx = pt_idx;
-    bool ret = Rt_data_prefetch(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot]);
+    bool ret = Rt_data_prefetch(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot],
+                                Pt_mgr._sync_read);
     IS_TRUE(ret == true, "prefetch error");
   }
   if (Pt_mgr._pt_entry[slot]._blk_sts == BLK_PREFETCHING) {
-    bool ret = Rt_data_read(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot]);
+    bool ret = Rt_data_read(Pt_mgr._file, pt_idx, &Pt_mgr._pt_entry[slot],
+                            Pt_mgr._sync_read);
     IS_TRUE(ret == true, "prefetch error");
   }
   IS_TRUE(Pt_mgr._pt_entry[slot]._blk_sts == BLK_READY,

@@ -99,9 +99,14 @@ struct IO_URING_CTX {
 static bool                Lib_init;
 static struct IO_URING_CTX Io_ctx;
 
-bool Block_io_init() {
+bool Block_io_init(bool sync_read) {
   IS_TRUE(Lib_init == false, "library already initialized");
   Lib_init = true;
+
+  if (sync_read) {
+    // no need to set up io_uring for sync read
+    return true;
+  }
 
   struct io_uring_params io_param;
   memset(&io_param, 0, sizeof(io_param));
@@ -183,9 +188,13 @@ bool Block_io_init() {
   return true;
 }
 
-void Block_io_fini() {
+void Block_io_fini(bool sync_read) {
   IS_TRUE(Lib_init == true, "library not initialized");
   Lib_init = false;
+
+  if (sync_read) {
+    return;
+  }
 
   // munmap sqe array
   if (Io_ctx._sq_ring._sqes != MAP_FAILED) {
@@ -210,7 +219,7 @@ void Block_io_fini() {
   }
 }
 
-int Block_io_open(const char* fname) {
+int Block_io_open(const char* fname, bool sync_read) {
   // check if library is initialized
   if (Lib_init <= 0) {
     FMT_ASSERT(false, "Fatal: io not initialized.\n");
@@ -223,6 +232,10 @@ int Block_io_open(const char* fname) {
   if (fd == -1) {
     perror("Fatal: data open()");
     return -1;
+  }
+
+  if (sync_read) {
+    return fd;
   }
 
   // register fd to ring_fd

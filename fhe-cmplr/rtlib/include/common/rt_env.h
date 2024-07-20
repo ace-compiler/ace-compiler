@@ -27,8 +27,8 @@
 #define ENV_PT_PREFETCH_COUNT "PT_PREFETCH_COUNT"
 
 //! environment variable to control rt data file reader (RT_DATA_FILE)
-//! RT_DATA_SYNC_READ=0|1: use synchronous read for debug. default: 0
-#define ENV_RT_DATA_SYNC_READ "RT_DATA_SYNC_READ"
+//! RT_DATA_ASYNC_READ=0|1: use asynchronous read. default: 0
+#define ENV_RT_DATA_ASYNC_READ "RT_DATA_ASYNC_READ"
 
 //! environment variable to control using even polynomial
 //! in mod_reduce of bootstrapping

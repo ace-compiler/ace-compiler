@@ -36,13 +36,13 @@ typedef struct {
 } BLOCK_INFO;
 
 //! @brief initialize block I/O context
-bool Block_io_init();
+bool Block_io_init(bool async);
 
 //! @brief finalize block I/O context
-void Block_io_fini();
+void Block_io_fini(bool sync_read);
 
 //! @brief open a file for I/O
-int Block_io_open(const char* fname);
+int Block_io_open(const char* fname, bool sync_read);
 
 //! @brief close a file
 void Block_io_close(int fd);

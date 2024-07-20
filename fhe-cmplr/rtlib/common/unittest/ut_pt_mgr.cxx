@@ -34,25 +34,26 @@ TEST(FHERT_COMMON, RT_DATA_FILE) {
     }
   }
   {
-    bool ret = Block_io_init();
+    bool sync_read = true;
+    bool ret       = Block_io_init(sync_read);
     EXPECT_TRUE(ret);
     BLOCK_INFO blk;
     blk._iovec.iov_base    = (char*)malloc(16);
     blk._iovec.iov_len     = 16;
-    struct RT_DATA_FILE* f = Rt_data_open(data_name);
+    struct RT_DATA_FILE* f = Rt_data_open(data_name, sync_read);
     EXPECT_TRUE(f != NULL);
     for (uint32_t i = 0; i < NUM_OF_ENTRY; ++i) {
       blk._blk_idx = i;
       blk._blk_sts = BLK_INVALID;
-      Rt_data_prefetch(f, i, &blk);
-      void* buf = Rt_data_read(f, i, &blk);
+      Rt_data_prefetch(f, i, &blk, sync_read);
+      void* buf = Rt_data_read(f, i, &blk, sync_read);
       EXPECT_EQ(blk._blk_sts, BLK_READY);
       EXPECT_EQ(memcmp(buf, pt_buf[i], 16), 0);
       free(pt_buf[i]);
     }
     free(blk._iovec.iov_base);
     Rt_data_close(f);
-    Block_io_fini();
+    Block_io_fini(sync_read);
   }
   unlink(data_name);
 }

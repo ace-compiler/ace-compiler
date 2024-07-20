@@ -23,21 +23,11 @@ struct RT_DATA_FILE {
   int                    _fd;
 };
 
-// always synchronously read the file for debug
-static int Rt_data_sync_read = -1;
-
-struct RT_DATA_FILE* Rt_data_open(const char* fname) {
-  // initialize Rt_data_sync_read if not initialized
-  if (Rt_data_sync_read == -1) {
-    const char* sr_env = getenv(ENV_RT_DATA_SYNC_READ);
-    if (sr_env == NULL || (Rt_data_sync_read = atoi(sr_env)) != 1) {
-      Rt_data_sync_read = 0;
-    }
-  }
+struct RT_DATA_FILE* Rt_data_open(const char* fname, bool sync_read) {
   struct RT_DATA_FILE* file =
       (struct RT_DATA_FILE*)malloc(sizeof(struct RT_DATA_FILE));
   IS_TRUE(file != NULL, "failed to malloc memory for RT_DATA_FILE");
-  file->_fd = Block_io_open(fname);
+  file->_fd = Block_io_open(fname, sync_read);
   if (file->_fd == -1) {
     IS_TRUE(file->_fd != -1, "failed to open rt data file");
     free(file);
@@ -69,14 +59,14 @@ void Rt_data_close(struct RT_DATA_FILE* file) {
 }
 
 bool Rt_data_prefetch(struct RT_DATA_FILE* file, uint32_t index,
-                      BLOCK_INFO* blk) {
+                      BLOCK_INFO* blk, bool sync_read) {
   IS_TRUE(file->_hdr._ent_type == DE_PLAINTEXT, "bad entry type");
   if (index >= file->_hdr._ent_count) return true;
   IS_TRUE(index < file->_hdr._ent_count, "index out of entry range");
   struct DATA_LUT_ENTRY* lut = &(file->_lut[index]);
   IS_TRUE(blk->_iovec.iov_len >= lut->_size, "buffer too small");
   IS_TRUE(blk->_blk_idx == index, "block index mismatch");
-  if (Rt_data_sync_read) {
+  if (sync_read) {
     blk->_blk_sts = BLK_PREFETCHING;
     ssize_t ret =
         pread(file->_fd, blk->_iovec.iov_base, lut->_size, lut->_ent_ofst);
@@ -89,13 +79,14 @@ bool Rt_data_prefetch(struct RT_DATA_FILE* file, uint32_t index,
   }
 }
 
-void* Rt_data_read(struct RT_DATA_FILE* file, uint32_t index, BLOCK_INFO* blk) {
+void* Rt_data_read(struct RT_DATA_FILE* file, uint32_t index, BLOCK_INFO* blk,
+                   bool sync_read) {
   IS_TRUE(file->_hdr._ent_type == DE_PLAINTEXT, "bad entry type");
   if (blk->_blk_sts == BLK_READY) {
     return blk->_iovec.iov_base;
   }
-  if (Rt_data_sync_read) {
-    IS_TRUE(false, "Rt_data_sync_read but not prefetched.");
+  if (sync_read) {
+    IS_TRUE(false, "sync_read but not prefetched.");
     return NULL;
   } else {
     IS_TRUE(index < file->_hdr._ent_count, "index out of entry range");

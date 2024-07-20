@@ -30,13 +30,14 @@ TEST(FHERT_COMMON, FILE_IO) {
     close(fd);
   }
   {
-    bool ret = Block_io_init();
+    bool sync_read = true;
+    bool ret       = Block_io_init(sync_read);
     EXPECT_TRUE(ret);
     BLOCK_INFO blk;
     EXPECT_EQ(posix_memalign((void**)&blk._iovec.iov_base, 4096, 4096), 0);
     blk._iovec.iov_len = 32;
     blk._blk_sts       = BLK_INVALID;
-    int fd             = Block_io_open(data_name);
+    int fd             = Block_io_open(data_name, sync_read);
     EXPECT_GE(fd, 0);
     char buf_ref[32];
     for (int i = 0; i < NUM_OF_ENTRY; ++i) {
@@ -53,7 +54,7 @@ TEST(FHERT_COMMON, FILE_IO) {
     }
     free(blk._iovec.iov_base);
     Block_io_close(fd);
-    Block_io_fini();
+    Block_io_fini(sync_read);
   }
   unlink(data_name);
 }

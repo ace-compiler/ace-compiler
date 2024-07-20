@@ -22,12 +22,13 @@ extern "C" {
 
 struct RT_DATA_FILE;
 
-struct RT_DATA_FILE* Rt_data_open(const char* fname);
+struct RT_DATA_FILE* Rt_data_open(const char* fname, bool sync_read);
 void                 Rt_data_close(struct RT_DATA_FILE* file);
 
 bool  Rt_data_prefetch(struct RT_DATA_FILE* file, uint32_t index,
-                       BLOCK_INFO* blk);
-void* Rt_data_read(struct RT_DATA_FILE* file, uint32_t index, BLOCK_INFO* blk);
+                       BLOCK_INFO* blk, bool sync_read);
+void* Rt_data_read(struct RT_DATA_FILE* file, uint32_t index, BLOCK_INFO* blk,
+                   bool sync_read);
 
 bool Rt_data_fill(struct RT_DATA_FILE* file, void* buf, uint64_t sz);
 
