@@ -133,8 +133,8 @@ protected:
 
   static const char* Symbol_class_name_arr[static_cast<int>(SYMBOL_CLASS::END)];
 
-  SYM_DATA_PTR _sym;
   SCOPE_BASE*  _scope;
+  SYM_DATA_PTR _sym;
 };
 
 class ADDR_DATUM : public SYM {
