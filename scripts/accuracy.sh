@@ -7,7 +7,7 @@ ID=acc
 WRK_DIR=`pwd`
 
 [ $# -ne 3 ] && echo "[WARN] Usage: $0 <model_name> <start_idx> <end_idx(excluded)>. For example: $0 resnet20_cifar10 0 100" && exit 0
-[ ! -d ./release_openmp -o ! -f ./release_openmp/driver/fhe_cmplr ] && echo "[ERROR] Run ./scripts/build-cmplr-omp.sh to build OpenMP-enabled FHE compiler at first." && exit 1
+[ ! -d ./release_openmp -o ! -f ./release_openmp/driver/fhe_cmplr ] && echo "[ERROR] Run ./scripts/build_cmplr_omp.sh to build OpenMP-enabled FHE compiler at first." && exit 1
 [ ! -f ./scripts/build_$TEST_NAME.sh ] && echo "[ERROR] Not find build script for $TEST_NAME. Possible model names are: resnet20_cifar10, resnet32_cifar10, resnet32_cifar100, resnet44_cifar10, resnet56_cifar10, resnet110_cifar10" && exit 1
 
 
