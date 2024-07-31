@@ -25,6 +25,7 @@ namespace fhe {
 
 namespace poly {
 
+class VAR;
 using GLOB_SCOPE      = air::base::GLOB_SCOPE;
 using FUNC_SCOPE      = air::base::FUNC_SCOPE;
 using VAR_ID          = air::base::ADDR_DATUM_ID;
@@ -47,7 +48,7 @@ using NODE_PAIR       = std::pair<NODE_PTR, NODE_PTR>;
 using NODE_TRIPLE     = std::tuple<NODE_PTR, NODE_PTR, NODE_PTR>;
 using STMT_PAIR       = std::pair<STMT_PTR, STMT_PTR>;
 using STMT_TRIPLE     = std::tuple<STMT_PTR, STMT_PTR, STMT_PTR>;
-
+using CONST_VAR       = const VAR;
 #define UNK_LEVEL            -1
 #define POLY_TMP_NAME_PREFIX "_poly"
 
@@ -105,80 +106,83 @@ enum POLY_PREDEF_VAR : uint8_t {
 };
 
 //! An encapsulation for air base ADDR_DATUM and PREG
-class VAR_PTR {
+class VAR {
 public:
-  VAR_PTR() : _is_preg(false) { _u._addr_var = air::base::Null_ptr; }
+  VAR() : _fscope(nullptr), _is_preg(false) { _var_id = air::base::Null_st_id; }
 
-  VAR_PTR(const VAR_PTR& var) {
-    _is_preg     = var._is_preg;
-    _u._addr_var = var._u._addr_var;
+  template <typename VAR_TYPE>
+  VAR(FUNC_SCOPE* fscope, VAR_TYPE var) {
+    Set_var(fscope, var);
   }
 
-  VAR_PTR(air::base::ADDR_DATUM_PTR var) { Set_sym(var); }
+  VAR(CONST_VAR& var) {
+    _fscope  = var._fscope;
+    _is_preg = var._is_preg;
+    _var_id  = var._var_id;
+  }
 
-  VAR_PTR(air::base::PREG_PTR preg) { Set_preg(preg); }
+  VAR& operator=(CONST_VAR& var) {
+    _fscope  = var._fscope;
+    _is_preg = var._is_preg;
+    _var_id  = var._var_id;
+    return *this;
+  }
 
-  bool Is_null() { return _u._addr_var == air::base::Null_ptr; }
+  void Set_var(FUNC_SCOPE* fscope, air::base::ADDR_DATUM_PTR var) {
+    _is_preg = false;
+    _var_id  = var->Id().Value();
+    _fscope  = fscope;
+  }
 
-  bool Is_preg() { return _is_preg; }
+  void Set_var(FUNC_SCOPE* fscope, air::base::PREG_PTR preg) {
+    _is_preg = true;
+    _var_id  = preg->Id().Value();
+    _fscope  = fscope;
+  }
 
-  bool Is_sym() { return !_is_preg; }
+  air::base::FUNC_SCOPE* Func_scope(void) const { return _fscope; }
 
-  TYPE_ID Type_id() {
+  bool Is_null(void) const { return _var_id == air::base::Null_st_id; }
+
+  bool Is_preg(void) const { return _is_preg; }
+
+  bool Is_sym(void) const { return !_is_preg; }
+
+  TYPE_PTR Type(void) const { return _fscope->Glob_scope().Type(Type_id()); }
+
+  TYPE_ID Type_id(void) const {
     if (Is_preg()) {
-      return _u._preg_var->Type_id();
+      return Preg_var()->Type_id();
     } else {
-      return _u._addr_var->Type_id();
+      return Addr_var()->Type_id();
     }
   }
 
-  TYPE_PTR Type() {
-    if (Is_preg()) {
-      return _u._preg_var->Type();
-    } else {
-      return _u._addr_var->Type();
-    }
+  air::base::ADDR_DATUM_PTR Addr_var(void) const {
+    AIR_ASSERT_MSG(!Is_preg(), "not Addr datum");
+    air::base::ADDR_DATUM_ID  id(_var_id);
+    air::base::ADDR_DATUM_PTR addr_datum = _fscope->Addr_datum(id);
+    return addr_datum;
   }
 
-  void Set_sym(air::base::ADDR_DATUM_PTR var) {
-    _is_preg     = false;
-    _u._addr_var = var;
+  air::base::PREG_PTR Preg_var(void) const {
+    AIR_ASSERT_MSG(Is_preg(), "not Preg");
+    air::base::PREG_ID  id(_var_id);
+    air::base::PREG_PTR preg = _fscope->Preg(id);
+    return preg;
   }
 
-  void Set_preg(air::base::PREG_PTR preg) {
-    _is_preg     = true;
-    _u._preg_var = preg;
-  }
-
-  air::base::ADDR_DATUM_PTR Addr_var() {
-    AIR_ASSERT_MSG(!Is_preg(), "not addr datum");
-    return _u._addr_var;
-  }
-
-  air::base::PREG_PTR Preg_var() {
-    AIR_ASSERT_MSG(Is_preg(), "not preg");
-    return _u._preg_var;
-  }
-
-  bool operator==(VAR_PTR other) {
+  bool operator==(CONST_VAR& other) const {
     if (_is_preg != other._is_preg) return false;
-    if (_is_preg) {
-      return _u._preg_var->Id() == other._u._preg_var->Id();
-    } else {
-      return _u._addr_var->Id() == other._u._addr_var->Id();
-    }
-    return false;
+    return (_var_id == other._var_id && _fscope == other._fscope);
   }
 
-  bool operator!=(VAR_PTR other) { return !(*this == other); }
+  bool operator!=(CONST_VAR& other) const { return !(*this == other); }
 
 private:
-  union VAR {
-    air::base::ADDR_DATUM_PTR _addr_var;
-    air::base::PREG_PTR       _preg_var;
-    VAR() { new (&_addr_var) air::base::ADDR_DATUM_PTR(); }
-  } _u;
-  bool _is_preg;
+  air::base::FUNC_SCOPE* _fscope;
+  uint32_t               _var_id;
+  bool                   _is_preg;
 };
 
 /**
@@ -228,16 +232,16 @@ public:
   /**
    * @brief Returns cached pre-defined variables
    *
-   * @return std::map<uint64_t, VAR_PTR>&
+   * @return std::map<uint64_t, VAR>&
    */
-  std::map<uint64_t, VAR_PTR>& Predef_var() { return _predef_var; }
+  std::map<uint64_t, VAR>& Predef_var() { return _predef_var; }
 
   /**
    * @brief Return created tempory local Plain/Ciph/Poly variable
    *
-   * @return std::vector<VAR_PTR>&
+   * @return std::vector<VAR>&
    */
-  std::vector<VAR_PTR>& Tmp_var() { return _tmp_var; }
+  std::vector<VAR>& Tmp_var() { return _tmp_var; }
 
   /**
    * @brief Return cached types
@@ -259,9 +263,9 @@ public:
    *
    * @param id Local variable id
    * @param spos source position
-   * @return VAR_PTR Local Symbol
+   * @return VAR Local Symbol
    */
-  VAR_PTR& Get_var(POLY_PREDEF_VAR id, const SPOS& spos);
+  CONST_VAR& Get_var(POLY_PREDEF_VAR id, const SPOS& spos);
 
   /**
    * @brief Generate a uniq temporary name
@@ -301,7 +305,7 @@ public:
   //! @param var CIPHER/CIPHER3/PLAIN variable
   //! @param fld_id field id
   //! @return polynomial field ptr
-  FIELD_PTR Get_poly_fld(VAR_PTR var, uint32_t fld_id);
+  FIELD_PTR Get_poly_fld(CONST_VAR var, uint32_t fld_id);
 
   /**
    * @brief Add <node, var> to map
@@ -309,8 +313,8 @@ public:
    * @param node
    * @param var
    */
-  VAR_PTR& Add_node_var(NODE_PTR node, air::base::ADDR_DATUM_PTR sym) {
-    VAR_PTR var(Func_scope()->Addr_datum(sym->Id()));
+  CONST_VAR& Add_node_var(NODE_PTR node, air::base::ADDR_DATUM_PTR sym) {
+    VAR var(Func_scope(), sym);
     CMPLR_ASSERT((_node2var_map.find(node->Id()) == _node2var_map.end() ||
                   _node2var_map[node->Id()] == var),
                  "node variable already exists");
@@ -318,8 +322,8 @@ public:
     return _node2var_map[node->Id()];
   }
 
-  VAR_PTR& Add_node_var(NODE_PTR node, air::base::PREG_PTR preg) {
-    VAR_PTR var(Func_scope()->Preg(preg->Id()));
+  CONST_VAR& Add_node_var(NODE_PTR node, air::base::PREG_PTR preg) {
+    VAR var(Func_scope(), preg);
     AIR_ASSERT_MSG((_node2var_map.find(node->Id()) == _node2var_map.end() ||
                     _node2var_map[node->Id()] == var),
                    "node variable already exists");
@@ -328,7 +332,7 @@ public:
   }
 
   bool Has_node_var(NODE_PTR node) {
-    std::map<NODE_ID, VAR_PTR>::iterator iter = _node2var_map.find(node->Id());
+    std::map<NODE_ID, VAR>::iterator iter = _node2var_map.find(node->Id());
     if (iter != _node2var_map.end()) {
       return true;
     } else {
@@ -337,8 +341,8 @@ public:
   }
 
   //! @brief Find or create node's result symbol
-  VAR_PTR& Node_var(NODE_PTR node) {
-    std::map<NODE_ID, VAR_PTR>::iterator iter = _node2var_map.find(node->Id());
+  CONST_VAR& Node_var(NODE_PTR node) {
+    std::map<NODE_ID, VAR>::iterator iter = _node2var_map.find(node->Id());
     if (iter != _node2var_map.end()) {
       return iter->second;
     } else if (node->Is_ld() && node->Has_sym()) {
@@ -454,30 +458,31 @@ public:
   NODE_PTR New_poly_add(NODE_PTR opnd1, NODE_PTR opnd2, const SPOS& spos);
 
   //! @brief Create load node for ADDR_DATUM/PREG
-  NODE_PTR New_var_load(VAR_PTR var, const SPOS& spos);
+  NODE_PTR New_var_load(CONST_VAR var, const SPOS& spos);
 
   //! @brief Create store stmt for ADDR_DATUM/PREG
-  STMT_PTR New_var_store(NODE_PTR val, VAR_PTR var, const SPOS& spos);
+  STMT_PTR New_var_store(NODE_PTR val, CONST_VAR var, const SPOS& spos);
 
   //! @brief Create load ciph's c0 and c1 poly node pair
   //! @param is_rns if true, load the poly at rns index
   //! @return NODE_PAIR two poly load node
-  NODE_PAIR New_ciph_poly_load(VAR_PTR v_ciph, bool is_rns, const SPOS& spos);
+  NODE_PAIR New_ciph_poly_load(CONST_VAR v_ciph, bool is_rns, const SPOS& spos);
 
   //! @brief Create load plain's poly node , if is_rns is true,
   //! @param is_rns if true, load the poly at rns index
-  NODE_PTR New_plain_poly_load(VAR_PTR v_plain, bool is_rns, const SPOS& spos);
+  NODE_PTR New_plain_poly_load(CONST_VAR v_plain, bool is_rns,
+                               const SPOS& spos);
 
-  NODE_TRIPLE New_ciph3_poly_load(VAR_PTR v_ciph3, bool is_rns,
+  NODE_TRIPLE New_ciph3_poly_load(CONST_VAR v_ciph3, bool is_rns,
                                   const SPOS& spos);
 
   //! @brief Create two store to ciph's c0 and c1
   //! @param is_rns if true, store the poly at rns index
   //! @return STMT_PAIR two store statement
-  STMT_PAIR New_ciph_poly_store(VAR_PTR v_ciph, NODE_PTR n_c0, NODE_PTR n_c1,
+  STMT_PAIR New_ciph_poly_store(CONST_VAR v_ciph, NODE_PTR n_c0, NODE_PTR n_c1,
                                 bool is_rns, const SPOS& spos);
 
-  STMT_TRIPLE New_ciph3_poly_store(VAR_PTR v_ciph3, NODE_PTR n_c0,
+  STMT_TRIPLE New_ciph3_poly_store(CONST_VAR v_ciph3, NODE_PTR n_c0,
                                    NODE_PTR n_c1, NODE_PTR n_c2, bool is_rns,
                                    const SPOS& spos);
 
@@ -489,7 +494,7 @@ public:
    * @param spos Source position
    * @return NODE_PTR
    */
-  NODE_PTR New_poly_load(VAR_PTR var, uint32_t load_idx, const SPOS& spos);
+  NODE_PTR New_poly_load(CONST_VAR var, uint32_t load_idx, const SPOS& spos);
 
   /**
    * @brief Create node to load coeffcients from polynomial at given level
@@ -498,7 +503,7 @@ public:
    * @param v_level Level symbol ptr
    * @return NODE_PTR
    */
-  NODE_PTR New_poly_load_at_level(NODE_PTR n_poly, VAR_PTR v_level);
+  NODE_PTR New_poly_load_at_level(NODE_PTR n_poly, CONST_VAR v_level);
 
   /**
    * @brief Create node to load coeffcients from polynomial at given level
@@ -518,7 +523,7 @@ public:
    * @param spos Source position
    * @return STMT_PTR
    */
-  STMT_PTR New_poly_store(NODE_PTR store_val, VAR_PTR var, uint32_t store_idx,
+  STMT_PTR New_poly_store(NODE_PTR store_val, CONST_VAR var, uint32_t store_idx,
                           const SPOS& spos);
 
   /**
@@ -530,7 +535,7 @@ public:
    * @return STMT_PTR
    */
   STMT_PTR New_poly_store_at_level(NODE_PTR n_lhs, NODE_PTR n_rhs,
-                                   VAR_PTR v_level);
+                                   CONST_VAR v_level);
 
   /**
    * @brief Create stmt to store coeffcients to polynomial at given level
@@ -580,7 +585,7 @@ public:
                                     const SPOS& spos);
 
   //! Create init ciph statment
-  STMT_PTR New_init_ciph(VAR_PTR v_parent, NODE_PTR node);
+  STMT_PTR New_init_ciph(CONST_VAR v_parent, NODE_PTR node);
 
   /**
    * @brief Create node to get ring degree
@@ -623,7 +628,7 @@ public:
    * @param spos Source position
    * @return STMT_PTR
    */
-  STMT_PTR New_free_poly(VAR_PTR v_poly, const SPOS& spos);
+  STMT_PTR New_free_poly(CONST_VAR v_poly, const SPOS& spos);
 
   /**
    * @brief Create a node to get q primes number of a polynomial
@@ -702,7 +707,7 @@ public:
    * @param spos  Source position
    * @return NODE_PTR
    */
-  NODE_PTR New_mod_up(NODE_PTR node, VAR_PTR v_part_idx, const SPOS& spos);
+  NODE_PTR New_mod_up(NODE_PTR node, CONST_VAR v_part_idx, const SPOS& spos);
 
   /**
    * @brief Create MOD_DOWN node
@@ -718,7 +723,7 @@ public:
   //! @param v_part_idx Decompose part index variable
   //! @param spos Source position
   //! @return NODE_PTR
-  NODE_PTR New_decomp_modup(NODE_PTR node, VAR_PTR v_part_idx,
+  NODE_PTR New_decomp_modup(NODE_PTR node, CONST_VAR v_part_idx,
                             const SPOS& spos);
 
   /**
@@ -749,17 +754,17 @@ public:
    * @param spos Source position
    * @return NODE_PTR
    */
-  NODE_PTR New_decomp(NODE_PTR node, VAR_PTR v_part_idx, const SPOS& spos);
+  NODE_PTR New_decomp(NODE_PTR node, CONST_VAR v_part_idx, const SPOS& spos);
 
   /**
    * @brief Create node to get public key0 from switch key at given part index
    */
-  NODE_PTR New_pk0_at(VAR_PTR v_swk, VAR_PTR v_part_idx, const SPOS& spos);
+  NODE_PTR New_pk0_at(CONST_VAR v_swk, CONST_VAR v_part_idx, const SPOS& spos);
 
   /**
    * @brief Create node to get public key1 from switch key at given part index
    */
-  NODE_PTR New_pk1_at(VAR_PTR v_swk, VAR_PTR v_part_idx, const SPOS& spos);
+  NODE_PTR New_pk1_at(CONST_VAR v_swk, CONST_VAR v_part_idx, const SPOS& spos);
 
   /**
    * @brief Create block of nodes to perform key switch
@@ -773,9 +778,9 @@ public:
    * @param is_ext Is P primes included
    * @return NODE_PTR
    */
-  NODE_PTR New_key_switch(VAR_PTR v_swk_c0, VAR_PTR v_swk_c1, VAR_PTR v_c1_ext,
-                          VAR_PTR v_key0, VAR_PTR v_key1, const SPOS& spos,
-                          bool is_ext);
+  NODE_PTR New_key_switch(CONST_VAR v_swk_c0, CONST_VAR v_swk_c1,
+                          CONST_VAR v_c1_ext, CONST_VAR v_key0,
+                          CONST_VAR v_key1, const SPOS& spos, bool is_ext);
 
   /**
    * @brief Create DO_LOOP to expand polynomial at each level
@@ -787,7 +792,7 @@ public:
    * @param spos source position
    * @return STMT_PTR
    */
-  STMT_PTR New_loop(VAR_PTR induct_var, NODE_PTR upper_bound,
+  STMT_PTR New_loop(CONST_VAR induct_var, NODE_PTR upper_bound,
                     uint64_t start_idx, uint64_t increment, const SPOS& spos);
 
   //! @brief Create block of nodes performs RNS loop operations
@@ -814,7 +819,7 @@ public:
    * @param spos Source position
    * @return NODE_PTR
    */
-  NODE_PTR New_get_next_modulus(VAR_PTR mod_var, const SPOS& spos);
+  NODE_PTR New_get_next_modulus(CONST_VAR mod_var, const SPOS& spos);
 
   /**
    * @brief Create Q_MODULUS node to get q modulus
@@ -858,17 +863,17 @@ private:
 
   POLY_MEM_POOL* Mem_pool() { return _pool; }
 
-  GLOB_SCOPE*                 _glob_scope;
-  FUNC_SCOPE*                 _func_scope;
-  CONTAINER*                  _container;
-  fhe::core::LOWER_CTX*       _ctx;
-  std::map<uint64_t, VAR_PTR> _predef_var;  // < {fs_id, var_id}, VAR_PTR >
-  std::vector<VAR_PTR>        _tmp_var;
-  std::vector<TYPE_ID>        _ty_table;
-  std::map<NODE_ID, VAR_PTR>  _node2var_map;
-  air::base::ENTRY_PTR        _rotate_func_entry;
-  air::base::ENTRY_PTR        _relin_func_entry;
-  POLY_MEM_POOL*              _pool;
+  GLOB_SCOPE*             _glob_scope;
+  FUNC_SCOPE*             _func_scope;
+  CONTAINER*              _container;
+  fhe::core::LOWER_CTX*   _ctx;
+  std::map<uint64_t, VAR> _predef_var;  // < {fs_id, var_id}, VAR >
+  std::vector<VAR>        _tmp_var;
+  std::vector<TYPE_ID>    _ty_table;
+  std::map<NODE_ID, VAR>  _node2var_map;
+  air::base::ENTRY_PTR    _rotate_func_entry;
+  air::base::ENTRY_PTR    _relin_func_entry;
+  POLY_MEM_POOL*          _pool;
 };
 
 }  // namespace poly

@@ -112,6 +112,8 @@ public:
   //! @brief Get current container
   CONTAINER* Container() { return _cntr; }
 
+  air::base::FUNC_SCOPE* Func_scope() { return _poly_gen.Func_scope(); }
+
   void Push_rns_blk(NODE_PAIR blk_pair) { _rns_blk.push(blk_pair); }
 
   NODE_PAIR Pop_rns_blk() {
@@ -185,16 +187,16 @@ public:
 
   //! @brief Return the node's parent symbol if not exists return Null_ptr
   template <typename VISITOR>
-  VAR_PTR Parent_sym(VISITOR* visitor, NODE_PTR node) {
+  VAR Parent_sym(VISITOR* visitor, NODE_PTR node) {
     NODE_PTR n_parent = visitor->Parent(1);
     if (n_parent != air::base::Null_ptr && n_parent->Is_st()) {
       if (n_parent->Has_sym()) {
-        return VAR_PTR(n_parent->Addr_datum());
+        return VAR(Func_scope(), n_parent->Addr_datum());
       } else if (n_parent->Has_preg()) {
-        return VAR_PTR(n_parent->Preg());
+        return VAR(Func_scope(), n_parent->Preg());
       }
     }
-    return VAR_PTR();
+    return VAR();
   }
 
   //! @brief Get POLY_IR_GEN instance
@@ -289,7 +291,7 @@ private:
   void Handle_kswitch_free(CKKS2POLY_CTX& ctx, STMT_LIST& sl, const SPOS& spos);
 
   // generate IR to perform key switch operation
-  void Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl, VAR_PTR v_key,
+  void Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl, CONST_VAR v_key,
                       NODE_PTR n_c1, const SPOS& spos);
 
   // generate IR to perform ModDown operation
@@ -302,14 +304,15 @@ private:
                                     NODE_PTR n_c0, const SPOS& spos);
 
   // generate IR to perform polynomial automorphism
-  void Handle_automorphism(CKKS2POLY_CTX& ctx, STMT_LIST& sl, VAR_PTR v_rot_res,
-                           NODE_PTR n_rot_idx, const SPOS& spos);
+  void Handle_automorphism(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
+                           CONST_VAR v_rot_res, NODE_PTR n_rot_idx,
+                           const SPOS& spos);
 
   // generate IR to perform relinearlize afterwards op for keyswitch
   // res_c0 = input_c0 + mod_down_c0
   // res_c1 = input_c1 + mod_down_c1
   void Handle_relin_post_keyswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
-                                   VAR_PTR v_relin_res, NODE_PTR n_c0,
+                                   CONST_VAR v_relin_res, NODE_PTR n_c0,
                                    NODE_PTR n_c1, const SPOS& spos);
 
   // expand rotate sub operations
@@ -338,7 +341,7 @@ private:
 
   // generate encode for floating point data, the scale and degree are retrived
   // from ciphertext
-  NODE_PTR Gen_encode_float_from_ciph(CKKS2POLY_CTX& ctx, VAR_PTR v_ciph,
+  NODE_PTR Gen_encode_float_from_ciph(CKKS2POLY_CTX& ctx, CONST_VAR v_ciph,
                                       NODE_PTR n_cst, bool is_mul);
 
   // Pre handle for ckks operators, generate rns loop if needed
@@ -387,7 +390,7 @@ private:
   CKKS2POLY_RETV Handle_ld_var(VISITOR* visitor, NODE_PTR node);
 
   template <typename VISITOR>
-  CKKS2POLY_RETV Handle_st_var(VISITOR* visitor, NODE_PTR node, VAR_PTR var);
+  CKKS2POLY_RETV Handle_st_var(VISITOR* visitor, NODE_PTR node, CONST_VAR var);
 };
 
 template <typename RETV, typename VISITOR>
@@ -395,7 +398,7 @@ CKKS2POLY_RETV CKKS2POLY::Handle_encode(VISITOR* visitor, NODE_PTR node) {
   SPOS           spos     = node->Spos();
   CKKS2POLY_CTX& ctx      = visitor->Context();
   NODE_PTR       n_clone  = ctx.Container()->Clone_node_tree(node);
-  VAR_PTR        v_encode = ctx.Poly_gen().Node_var(node);
+  CONST_VAR&     v_encode = ctx.Poly_gen().Node_var(node);
 
   STMT_PTR s_encode = ctx.Poly_gen().New_var_store(n_clone, v_encode, spos);
   ctx.Prepend(s_encode);
@@ -481,8 +484,8 @@ CKKS2POLY_RETV CKKS2POLY::Handle_relin(VISITOR* visitor, NODE_PTR node) {
     ctx.Prepend(blk->Stmt());
   } else {
     // call relin function
-    VAR_PTR  v_opnd0 = ctx.Poly_gen().Node_var(n_opnd0);
-    NODE_PTR n_arg   = ctx.Poly_gen().New_var_load(v_opnd0, spos);
+    CONST_VAR& v_opnd0 = ctx.Poly_gen().Node_var(n_opnd0);
+    NODE_PTR   n_arg   = ctx.Poly_gen().New_var_load(v_opnd0, spos);
     Call_relin(ctx, node, n_arg);
   }
 
@@ -514,9 +517,9 @@ CKKS2POLY_RETV CKKS2POLY::Handle_rotate(VISITOR* visitor, NODE_PTR node) {
                                  opnd0_retv.Node2(), opnd1_retv.Node(), spos);
     ctx.Prepend(blk->Stmt());
   } else {
-    VAR_PTR  v_opnd0 = ctx.Poly_gen().Node_var(n_opnd0);
-    NODE_PTR n_arg0  = ctx.Poly_gen().New_var_load(v_opnd0, spos);
-    NODE_PTR n_arg1  = opnd1_retv.Node();
+    CONST_VAR& v_opnd0 = ctx.Poly_gen().Node_var(n_opnd0);
+    NODE_PTR   n_arg0  = ctx.Poly_gen().New_var_load(v_opnd0, spos);
+    NODE_PTR   n_arg1  = opnd1_retv.Node();
     Call_rotate(ctx, node, n_arg0, n_arg1);
   }
 
@@ -554,9 +557,9 @@ bool CKKS2POLY::Pre_handle_ckks_op(VISITOR* visitor, NODE_PTR node) {
   CKKS2POLY_CTX& ctx             = visitor->Context();
   bool           is_gen_rns_loop = Is_gen_rns_loop(visitor->Parent(1), node);
   if (is_gen_rns_loop) {
-    VAR_PTR   v_res      = ctx.Poly_gen().Node_var(node);
-    NODE_PTR  n_res_c0   = ctx.Poly_gen().New_poly_load(v_res, 0, node->Spos());
-    NODE_PAIR block_pair = ctx.Poly_gen().New_rns_loop(n_res_c0, false);
+    CONST_VAR& v_res    = ctx.Poly_gen().Node_var(node);
+    NODE_PTR   n_res_c0 = ctx.Poly_gen().New_poly_load(v_res, 0, node->Spos());
+    NODE_PAIR  block_pair = ctx.Poly_gen().New_rns_loop(n_res_c0, false);
     ctx.Push_rns_blk(block_pair);
   }
   return is_gen_rns_loop;
@@ -568,8 +571,8 @@ CKKS2POLY_RETV CKKS2POLY::Post_handle_ckks_op(VISITOR* visitor, NODE_PTR node,
                                               bool           is_gen_rns_loop) {
   CKKS2POLY_RETV retv;
   CKKS2POLY_CTX& ctx      = visitor->Context();
-  VAR_PTR        v_node   = ctx.Poly_gen().Node_var(node);
-  VAR_PTR        v_parent = ctx.Parent_sym(visitor, node);
+  CONST_VAR&     v_node   = ctx.Poly_gen().Node_var(node);
+  VAR            v_parent = ctx.Parent_sym(visitor, node);
   NODE_PTR       n_parent = visitor->Parent(1);
 
   // Add init statement
@@ -634,8 +637,8 @@ CKKS2POLY_RETV CORE2POLY::Handle_ild(VISITOR* visitor, NODE_PTR node) {
   if (retv.Kind() != RETV_KIND::RK_DEFAULT &&
       retv.Kind() != RETV_KIND::RK_BLOCK) {
     // save ild to temp
-    VAR_PTR  v_ild   = ctx.Poly_gen().Node_var(node);
-    NODE_PTR n_clone = ctx.Container()->Clone_node_tree(node);
+    CONST_VAR& v_ild   = ctx.Poly_gen().Node_var(node);
+    NODE_PTR   n_clone = ctx.Container()->Clone_node_tree(node);
     STMT_PTR s_ild = ctx.Poly_gen().New_var_store(n_clone, v_ild, node->Spos());
     ctx.Prepend(s_ild);
   }
@@ -663,7 +666,8 @@ CKKS2POLY_RETV CORE2POLY::Handle_st(VISITOR* visitor, NODE_PTR node) {
   if (!(node->Child(0)->Is_ld())) {
     ctx.Poly_gen().Add_node_var(node->Child(0), node->Addr_datum());
   }
-  return Handle_st_var(visitor, node, VAR_PTR(node->Addr_datum()));
+  VAR node_var(ctx.Func_scope(), node->Addr_datum());
+  return Handle_st_var(visitor, node, node_var);
 }
 
 template <typename RETV, typename VISITOR>
@@ -672,14 +676,15 @@ CKKS2POLY_RETV CORE2POLY::Handle_stp(VISITOR* visitor, NODE_PTR node) {
   if (!(node->Child(0)->Is_ld())) {
     ctx.Poly_gen().Add_node_var(node->Child(0), node->Preg());
   }
-  return Handle_st_var(visitor, node, VAR_PTR(node->Preg()));
+  VAR node_preg(ctx.Func_scope(), node->Preg());
+  return Handle_st_var(visitor, node, node_preg);
 }
 
 template <typename VISITOR>
 CKKS2POLY_RETV CORE2POLY::Handle_st_var(VISITOR* visitor, NODE_PTR node,
-                                        VAR_PTR var) {
-  TYPE_ID               tid       = var.Type_id();
+                                        CONST_VAR var) {
   CKKS2POLY_CTX&        ctx       = visitor->Context();
+  TYPE_ID               tid       = var.Type_id();
   fhe::core::LOWER_CTX* lower_ctx = ctx.Lower_ctx();
   if (!(lower_ctx->Is_cipher_type(tid) || lower_ctx->Is_cipher3_type(tid) ||
         lower_ctx->Is_plain_type(tid)) ||

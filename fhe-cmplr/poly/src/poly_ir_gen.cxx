@@ -103,22 +103,21 @@ TYPE_PTR POLY_IR_GEN::Get_type(VAR_TYPE_KIND id, const SPOS& spos) {
   return ty;
 }
 
-VAR_PTR& POLY_IR_GEN::Get_var(POLY_PREDEF_VAR id, const SPOS& spos) {
+CONST_VAR& POLY_IR_GEN::Get_var(POLY_PREDEF_VAR id, const SPOS& spos) {
   CMPLR_ASSERT(id < POLY_PREDEF_VAR::LAST_VAR, "id outof bound")
-  FUNC_SCOPE*                  fs         = Container()->Parent_func_scope();
-  std::map<uint64_t, VAR_PTR>& predef_var = Predef_var();
+  FUNC_SCOPE*              fs         = Container()->Parent_func_scope();
+  std::map<uint64_t, VAR>& predef_var = Predef_var();
 
   uint64_t idx = id + ((uint64_t)(fs->Id().Value()) << 32);
   if (predef_var.find(idx) != predef_var.end()) {
-    CMPLR_ASSERT(predef_var[idx].Addr_var()->Defining_func_scope() == fs,
-                 "invalid predef var map");
+    CMPLR_ASSERT(predef_var[idx].Func_scope() == fs, "invalid predef var map");
     return predef_var[idx];
   } else {
     const char*        name = Pred_var_info[id]._name;
     GLOB_SCOPE*        gs   = Container()->Glob_scope();
     air::base::STR_PTR str  = gs->New_str(name);
     TYPE_PTR           ty   = Get_type(Pred_var_info[id]._kind, spos);
-    VAR_PTR            var(fs->New_var(ty, str, spos));
+    VAR                var(fs, fs->New_var(ty, str, spos));
     predef_var[idx] = var;
     return predef_var[idx];
   }
@@ -137,7 +136,7 @@ air::base::ADDR_DATUM_PTR POLY_IR_GEN::New_plain_var(const SPOS& spos) {
   ADDR_DATUM_PTR var =
       fs->New_var(Glob_scope()->Type(Lower_ctx()->Get_plain_type_id()),
                   Gen_tmp_name(), spos);
-  Tmp_var().push_back(var);
+  Tmp_var().push_back(VAR(fs, var));
   return var;
 }
 
@@ -146,7 +145,7 @@ air::base::ADDR_DATUM_PTR POLY_IR_GEN::New_ciph_var(const SPOS& spos) {
   air::base::ADDR_DATUM_PTR var =
       fs->New_var(Glob_scope()->Type(Lower_ctx()->Get_cipher_type_id()),
                   Gen_tmp_name(), spos);
-  Tmp_var().push_back(var);
+  Tmp_var().push_back(VAR(fs, var));
   return var;
 }
 
@@ -155,7 +154,7 @@ air::base::ADDR_DATUM_PTR POLY_IR_GEN::New_ciph3_var(const SPOS& spos) {
   air::base::ADDR_DATUM_PTR var =
       fs->New_var(Glob_scope()->Type(Lower_ctx()->Get_cipher3_type_id()),
                   Gen_tmp_name(), spos);
-  Tmp_var().push_back(var);
+  Tmp_var().push_back(VAR(fs, var));
   return var;
 }
 
@@ -163,11 +162,11 @@ air::base::ADDR_DATUM_PTR POLY_IR_GEN::New_poly_var(const SPOS& spos) {
   air::base::FUNC_SCOPE*    fs = Container()->Parent_func_scope();
   air::base::ADDR_DATUM_PTR var =
       fs->New_var(Poly_type(), Gen_tmp_name(), spos);
-  Tmp_var().push_back(var);
+  Tmp_var().push_back(VAR(fs, var));
   return var;
 }
 
-FIELD_PTR POLY_IR_GEN::Get_poly_fld(VAR_PTR var, uint32_t fld_id) {
+FIELD_PTR POLY_IR_GEN::Get_poly_fld(CONST_VAR var, uint32_t fld_id) {
   TYPE_PTR t_var = var.Type();
 
   CMPLR_ASSERT(fld_id <= 2, "invalid field id");
@@ -281,7 +280,7 @@ STMT_PTR POLY_IR_GEN::New_poly_stmt(OPCODE opcode, const SPOS& spos) {
   return cont->New_cust_stmt(air::base::OPCODE(POLYNOMIAL_DID, opcode), spos);
 }
 
-NODE_PTR POLY_IR_GEN::New_var_load(VAR_PTR var, const SPOS& spos) {
+NODE_PTR POLY_IR_GEN::New_var_load(CONST_VAR var, const SPOS& spos) {
   CMPLR_ASSERT(!var.Is_null(), "null preg or symbol");
   if (var.Is_preg()) {
     return Container()->New_ldp(var.Preg_var(), spos);
@@ -290,7 +289,7 @@ NODE_PTR POLY_IR_GEN::New_var_load(VAR_PTR var, const SPOS& spos) {
   }
 }
 
-STMT_PTR POLY_IR_GEN::New_var_store(NODE_PTR val, VAR_PTR var,
+STMT_PTR POLY_IR_GEN::New_var_store(NODE_PTR val, CONST_VAR var,
                                     const SPOS& spos) {
   CMPLR_ASSERT(!var.Is_null(), "null preg or symbol");
   if (var.Is_preg()) {
@@ -300,7 +299,7 @@ STMT_PTR POLY_IR_GEN::New_var_store(NODE_PTR val, VAR_PTR var,
   }
 }
 
-NODE_PAIR POLY_IR_GEN::New_ciph_poly_load(VAR_PTR v_ciph, bool is_rns,
+NODE_PAIR POLY_IR_GEN::New_ciph_poly_load(CONST_VAR v_ciph, bool is_rns,
                                           const SPOS& spos) {
   CMPLR_ASSERT(Lower_ctx()->Is_cipher_type(v_ciph.Type_id()),
                "v_ciph is not ciphertext");
@@ -308,31 +307,31 @@ NODE_PAIR POLY_IR_GEN::New_ciph_poly_load(VAR_PTR v_ciph, bool is_rns,
   NODE_PTR n_c0 = New_poly_load(v_ciph, 0, spos);
   NODE_PTR n_c1 = New_poly_load(v_ciph, 1, spos);
   if (is_rns) {
-    VAR_PTR  v_rns_idx     = Get_var(VAR_RNS_IDX, spos);
-    NODE_PTR n_c0_rns_load = New_poly_load_at_level(n_c0, v_rns_idx);
-    NODE_PTR n_c1_rns_load = New_poly_load_at_level(n_c1, v_rns_idx);
+    CONST_VAR& v_rns_idx     = Get_var(VAR_RNS_IDX, spos);
+    NODE_PTR   n_c0_rns_load = New_poly_load_at_level(n_c0, v_rns_idx);
+    NODE_PTR   n_c1_rns_load = New_poly_load_at_level(n_c1, v_rns_idx);
     return std::make_pair(n_c0_rns_load, n_c1_rns_load);
   } else {
     return std::make_pair(n_c0, n_c1);
   }
 }
 
-NODE_PTR POLY_IR_GEN::New_plain_poly_load(VAR_PTR v_plain, bool is_rns,
+NODE_PTR POLY_IR_GEN::New_plain_poly_load(CONST_VAR v_plain, bool is_rns,
                                           const SPOS& spos) {
   CMPLR_ASSERT(Lower_ctx()->Is_plain_type(v_plain.Type_id()),
                "v_plain is not plaintext");
 
   NODE_PTR n_plain = New_poly_load(v_plain, 0, spos);
   if (is_rns) {
-    VAR_PTR  v_rns_idx       = Get_var(VAR_RNS_IDX, spos);
-    NODE_PTR n_poly_rns_load = New_poly_load_at_level(n_plain, v_rns_idx);
+    CONST_VAR& v_rns_idx       = Get_var(VAR_RNS_IDX, spos);
+    NODE_PTR   n_poly_rns_load = New_poly_load_at_level(n_plain, v_rns_idx);
     return n_poly_rns_load;
   } else {
     return n_plain;
   }
 }
 
-STMT_PAIR POLY_IR_GEN::New_ciph_poly_store(VAR_PTR v_ciph, NODE_PTR n_c0,
+STMT_PAIR POLY_IR_GEN::New_ciph_poly_store(CONST_VAR v_ciph, NODE_PTR n_c0,
                                            NODE_PTR n_c1, bool is_rns,
                                            const SPOS& spos) {
   CMPLR_ASSERT(Lower_ctx()->Is_cipher_type(v_ciph.Type_id()),
@@ -341,8 +340,8 @@ STMT_PAIR POLY_IR_GEN::New_ciph_poly_store(VAR_PTR v_ciph, NODE_PTR n_c0,
   STMT_PTR s_c0;
   STMT_PTR s_c1;
   if (is_rns) {
-    VAR_PTR   v_rns_idx  = Get_var(VAR_RNS_IDX, spos);
-    NODE_PAIR n_lhs_pair = New_ciph_poly_load(v_ciph, false, spos);
+    CONST_VAR& v_rns_idx  = Get_var(VAR_RNS_IDX, spos);
+    NODE_PAIR  n_lhs_pair = New_ciph_poly_load(v_ciph, false, spos);
     s_c0 = New_poly_store_at_level(n_lhs_pair.first, n_c0, v_rns_idx);
     s_c1 = New_poly_store_at_level(n_lhs_pair.second, n_c1, v_rns_idx);
   } else {
@@ -352,7 +351,7 @@ STMT_PAIR POLY_IR_GEN::New_ciph_poly_store(VAR_PTR v_ciph, NODE_PTR n_c0,
   return std::make_pair(s_c0, s_c1);
 }
 
-NODE_PTR POLY_IR_GEN::New_poly_load(VAR_PTR var, uint32_t load_idx,
+NODE_PTR POLY_IR_GEN::New_poly_load(CONST_VAR var, uint32_t load_idx,
                                     const SPOS& spos) {
   FIELD_PTR fld_ptr = Get_poly_fld(var, load_idx);
   if (var.Is_sym()) {
@@ -362,7 +361,7 @@ NODE_PTR POLY_IR_GEN::New_poly_load(VAR_PTR var, uint32_t load_idx,
   }
 }
 
-NODE_TRIPLE POLY_IR_GEN::New_ciph3_poly_load(VAR_PTR v_ciph3, bool is_rns,
+NODE_TRIPLE POLY_IR_GEN::New_ciph3_poly_load(CONST_VAR v_ciph3, bool is_rns,
                                              const SPOS& spos) {
   CMPLR_ASSERT(Lower_ctx()->Is_cipher3_type(v_ciph3.Type_id()),
                "v_ciph3 is not CIPHER3 type");
@@ -371,17 +370,17 @@ NODE_TRIPLE POLY_IR_GEN::New_ciph3_poly_load(VAR_PTR v_ciph3, bool is_rns,
   NODE_PTR n_c1 = New_poly_load(v_ciph3, 1, spos);
   NODE_PTR n_c2 = New_poly_load(v_ciph3, 2, spos);
   if (is_rns) {
-    VAR_PTR  v_rns_idx     = Get_var(VAR_RNS_IDX, spos);
-    NODE_PTR n_c0_rns_load = New_poly_load_at_level(n_c0, v_rns_idx);
-    NODE_PTR n_c1_rns_load = New_poly_load_at_level(n_c1, v_rns_idx);
-    NODE_PTR n_c2_rns_load = New_poly_load_at_level(n_c2, v_rns_idx);
+    CONST_VAR& v_rns_idx     = Get_var(VAR_RNS_IDX, spos);
+    NODE_PTR   n_c0_rns_load = New_poly_load_at_level(n_c0, v_rns_idx);
+    NODE_PTR   n_c1_rns_load = New_poly_load_at_level(n_c1, v_rns_idx);
+    NODE_PTR   n_c2_rns_load = New_poly_load_at_level(n_c2, v_rns_idx);
     return std::make_tuple(n_c0_rns_load, n_c1_rns_load, n_c2_rns_load);
   } else {
     return std::make_tuple(n_c0, n_c1, n_c2);
   }
 }
 
-STMT_TRIPLE POLY_IR_GEN::New_ciph3_poly_store(VAR_PTR v_ciph3, NODE_PTR n_c0,
+STMT_TRIPLE POLY_IR_GEN::New_ciph3_poly_store(CONST_VAR v_ciph3, NODE_PTR n_c0,
                                               NODE_PTR n_c1, NODE_PTR n_c2,
                                               bool is_rns, const SPOS& spos) {
   AIR_ASSERT_MSG(Lower_ctx()->Is_cipher3_type(v_ciph3.Type_id()),
@@ -391,7 +390,7 @@ STMT_TRIPLE POLY_IR_GEN::New_ciph3_poly_store(VAR_PTR v_ciph3, NODE_PTR n_c0,
   STMT_PTR s_c1;
   STMT_PTR s_c2;
   if (is_rns) {
-    VAR_PTR     v_rns_idx = Get_var(VAR_RNS_IDX, spos);
+    CONST_VAR&  v_rns_idx = Get_var(VAR_RNS_IDX, spos);
     NODE_TRIPLE n_lhs_tpl = New_ciph3_poly_load(v_ciph3, false, spos);
     s_c0 = New_poly_store_at_level(std::get<0>(n_lhs_tpl), n_c0, v_rns_idx);
     s_c1 = New_poly_store_at_level(std::get<1>(n_lhs_tpl), n_c1, v_rns_idx);
@@ -404,7 +403,7 @@ STMT_TRIPLE POLY_IR_GEN::New_ciph3_poly_store(VAR_PTR v_ciph3, NODE_PTR n_c0,
   return std::make_tuple(s_c0, s_c1, s_c2);
 }
 
-STMT_PTR POLY_IR_GEN::New_poly_store(NODE_PTR store_val, VAR_PTR var,
+STMT_PTR POLY_IR_GEN::New_poly_store(NODE_PTR store_val, CONST_VAR var,
                                      uint32_t store_idx, const SPOS& spos) {
   FIELD_PTR fld_ptr = Get_poly_fld(var, store_idx);
   if (var.Is_sym()) {
@@ -418,7 +417,8 @@ STMT_PTR POLY_IR_GEN::New_poly_store(NODE_PTR store_val, VAR_PTR var,
   }
 }
 
-NODE_PTR POLY_IR_GEN::New_poly_load_at_level(NODE_PTR n_poly, VAR_PTR v_level) {
+NODE_PTR POLY_IR_GEN::New_poly_load_at_level(NODE_PTR  n_poly,
+                                             CONST_VAR v_level) {
   CONTAINER* cont = Container();
   CMPLR_ASSERT(cont, "null scope");
 
@@ -439,7 +439,7 @@ NODE_PTR POLY_IR_GEN::New_poly_load_at_level(NODE_PTR n_poly,
 }
 
 STMT_PTR POLY_IR_GEN::New_poly_store_at_level(NODE_PTR n_lhs, NODE_PTR n_rhs,
-                                              VAR_PTR v_level) {
+                                              CONST_VAR v_level) {
   CONTAINER* cont = Container();
   CMPLR_ASSERT(cont, "null scope");
 
@@ -585,20 +585,20 @@ STMT_PTR POLY_IR_GEN::New_init_ciph_down_scale(NODE_PTR res, NODE_PTR opnd,
 
 // This is a tempory place to insert init node
 // A better design is: postpone to CG IR phase
-STMT_PTR POLY_IR_GEN::New_init_ciph(VAR_PTR v_parent, NODE_PTR node) {
+STMT_PTR POLY_IR_GEN::New_init_ciph(CONST_VAR v_parent, NODE_PTR node) {
   CMPLR_ASSERT(Lower_ctx()->Is_cipher_type(node->Rtype_id()) ||
                    Lower_ctx()->Is_cipher3_type(node->Rtype_id()),
                "not ciphertext type");
 
-  VAR_PTR v_res = v_parent.Is_null() ? Node_var(node) : v_parent;
-  SPOS    spos  = node->Spos();
+  CONST_VAR& v_res = v_parent.Is_null() ? Node_var(node) : v_parent;
+  SPOS       spos  = node->Spos();
   if (node->Domain() == fhe::ckks::CKKS_DOMAIN::ID) {
     switch (node->Operator()) {
       case fhe::ckks::CKKS_OPERATOR::ADD:
       case fhe::ckks::CKKS_OPERATOR::SUB:
       case fhe::ckks::CKKS_OPERATOR::MUL: {
-        VAR_PTR v_opnd0 = Node_var(node->Child(0));
-        VAR_PTR v_opnd1 = Node_var(node->Child(1));
+        CONST_VAR& v_opnd0 = Node_var(node->Child(0));
+        CONST_VAR& v_opnd1 = Node_var(node->Child(1));
         if (v_res != v_opnd0 || v_res != v_opnd1) {
           NODE_PTR n_res   = New_var_load(v_res, spos);
           NODE_PTR n_opnd0 = New_var_load(v_opnd0, spos);
@@ -612,7 +612,7 @@ STMT_PTR POLY_IR_GEN::New_init_ciph(VAR_PTR v_parent, NODE_PTR node) {
       }
       case fhe::ckks::CKKS_OPERATOR::RELIN:
       case fhe::ckks::CKKS_OPERATOR::ROTATE: {
-        VAR_PTR v_opnd0 = Node_var(node->Child(0));
+        CONST_VAR& v_opnd0 = Node_var(node->Child(0));
         if (v_res != v_opnd0) {
           NODE_PTR n_res   = New_var_load(v_res, spos);
           NODE_PTR n_opnd0 = New_var_load(v_opnd0, spos);
@@ -625,9 +625,9 @@ STMT_PTR POLY_IR_GEN::New_init_ciph(VAR_PTR v_parent, NODE_PTR node) {
         break;
       }
       case fhe::ckks::CKKS_OPERATOR::RESCALE: {
-        VAR_PTR  v_opnd0 = Node_var(node->Child(0));
-        NODE_PTR n_res   = New_var_load(v_res, spos);
-        NODE_PTR n_opnd0 = New_var_load(v_opnd0, spos);
+        CONST_VAR& v_opnd0 = Node_var(node->Child(0));
+        NODE_PTR   n_res   = New_var_load(v_res, spos);
+        NODE_PTR   n_opnd0 = New_var_load(v_opnd0, spos);
         return New_init_ciph_down_scale(n_res, n_opnd0, spos);
       }
       default:
@@ -635,7 +635,7 @@ STMT_PTR POLY_IR_GEN::New_init_ciph(VAR_PTR v_parent, NODE_PTR node) {
     }
   } else if (node->Domain() == air::core::CORE &&
              node->Operator() == air::core::LD) {
-    VAR_PTR v_opnd0(node->Addr_datum());
+    VAR v_opnd0(Func_scope(), node->Addr_datum());
     if (v_res != v_opnd0) {
       NODE_PTR n_res   = New_var_load(v_res, spos);
       NODE_PTR n_opnd0 = New_var_load(v_opnd0, spos);
@@ -695,7 +695,7 @@ NODE_PTR POLY_IR_GEN::New_alloc_poly(NODE_PTR n_degree, NODE_PTR n_num_q,
   return n_alloc;
 }
 
-STMT_PTR POLY_IR_GEN::New_free_poly(VAR_PTR v_poly, const SPOS& spos) {
+STMT_PTR POLY_IR_GEN::New_free_poly(CONST_VAR v_poly, const SPOS& spos) {
   CMPLR_ASSERT(v_poly.Type() == Get_type(POLY, spos), "invalid type");
 
   NODE_PTR n_poly = New_var_load(v_poly, spos);
@@ -779,7 +779,7 @@ NODE_PTR POLY_IR_GEN::New_rescale(NODE_PTR n_opnd, const SPOS& spos) {
   return n_res;
 }
 
-STMT_PTR POLY_IR_GEN::New_loop(VAR_PTR induct_var, NODE_PTR upper_bound,
+STMT_PTR POLY_IR_GEN::New_loop(CONST_VAR induct_var, NODE_PTR upper_bound,
                                uint64_t start_idx, uint64_t increment,
                                const SPOS& spos) {
   CONTAINER*  cont = Container();
@@ -811,7 +811,8 @@ STMT_PTR POLY_IR_GEN::New_loop(VAR_PTR induct_var, NODE_PTR upper_bound,
   return do_loop;
 }
 
-NODE_PTR POLY_IR_GEN::New_get_next_modulus(VAR_PTR mod_var, const SPOS& spos) {
+NODE_PTR POLY_IR_GEN::New_get_next_modulus(CONST_VAR   mod_var,
+                                           const SPOS& spos) {
   NODE_PTR ld_mod   = New_var_load(mod_var, spos);
   NODE_PTR one_node = Container()->New_intconst(
       Glob_scope()->Prim_type(PRIMITIVE_TYPE::INT_U64), 1, spos);
@@ -855,7 +856,7 @@ void POLY_IR_GEN::Append_rns_stmt(STMT_PTR stmt, NODE_PTR blk) {
 
 int32_t POLY_IR_GEN::Get_level(NODE_PTR node) { return UNK_LEVEL; }
 
-NODE_PTR POLY_IR_GEN::New_mod_up(NODE_PTR node, VAR_PTR v_part_idx,
+NODE_PTR POLY_IR_GEN::New_mod_up(NODE_PTR node, CONST_VAR v_part_idx,
                                  const SPOS& spos) {
   CMPLR_ASSERT(node->Rtype() == Get_type(POLY, spos),
                "node is not polynonmial");
@@ -867,7 +868,7 @@ NODE_PTR POLY_IR_GEN::New_mod_up(NODE_PTR node, VAR_PTR v_part_idx,
   return n_res;
 }
 
-NODE_PTR POLY_IR_GEN::New_decomp_modup(NODE_PTR node, VAR_PTR v_part_idx,
+NODE_PTR POLY_IR_GEN::New_decomp_modup(NODE_PTR node, CONST_VAR v_part_idx,
                                        const SPOS& spos) {
   CMPLR_ASSERT(node->Rtype() == Get_type(POLY, spos),
                "node is not polynonmial");
@@ -917,7 +918,7 @@ NODE_PTR POLY_IR_GEN::New_swk(bool is_rot, const SPOS& spos,
   }
 }
 
-NODE_PTR POLY_IR_GEN::New_decomp(NODE_PTR node, VAR_PTR v_part_idx,
+NODE_PTR POLY_IR_GEN::New_decomp(NODE_PTR node, CONST_VAR v_part_idx,
                                  const SPOS& spos) {
   CMPLR_ASSERT(node->Rtype() == Get_type(POLY, spos), "node is not polynomial");
 
@@ -928,7 +929,7 @@ NODE_PTR POLY_IR_GEN::New_decomp(NODE_PTR node, VAR_PTR v_part_idx,
   return n_res;
 }
 
-NODE_PTR POLY_IR_GEN::New_pk0_at(VAR_PTR v_swk, VAR_PTR v_part_idx,
+NODE_PTR POLY_IR_GEN::New_pk0_at(CONST_VAR v_swk, CONST_VAR v_part_idx,
                                  const SPOS& spos) {
   CMPLR_ASSERT(v_swk.Type() == Get_type(SWK_PTR, spos),
                "node is not switch key");
@@ -941,7 +942,7 @@ NODE_PTR POLY_IR_GEN::New_pk0_at(VAR_PTR v_swk, VAR_PTR v_part_idx,
   return n_res;
 }
 
-NODE_PTR POLY_IR_GEN::New_pk1_at(VAR_PTR v_swk, VAR_PTR v_part_idx,
+NODE_PTR POLY_IR_GEN::New_pk1_at(CONST_VAR v_swk, CONST_VAR v_part_idx,
                                  const SPOS& spos) {
   CMPLR_ASSERT(v_swk.Type() == Get_type(SWK_PTR, spos),
                "node is not switch key");
@@ -963,45 +964,45 @@ NODE_PAIR POLY_IR_GEN::New_rns_loop(NODE_PTR node, bool is_ext) {
 
   // 2. before loop
   // generate get modulus node
-  VAR_PTR  v_modulus = Get_var(VAR_MODULUS, spos);
-  NODE_PTR n_modulus = is_ext ? New_p_modulus(spos) : New_q_modulus(spos);
-  STMT_PTR s_modulus = New_var_store(n_modulus, v_modulus, spos);
+  CONST_VAR& v_modulus = Get_var(VAR_MODULUS, spos);
+  NODE_PTR   n_modulus = is_ext ? New_p_modulus(spos) : New_q_modulus(spos);
+  STMT_PTR   s_modulus = New_var_store(n_modulus, v_modulus, spos);
   sl_outer.Append(s_modulus);
 
   // extra statements for extended polynomial
-  VAR_PTR v_ub;
+  VAR v_ub;
   if (is_ext) {
     // store poly num of p to variable
-    VAR_PTR  v_num_p = Get_var(VAR_NUM_P, spos);
-    NODE_PTR n_num_p = New_num_p(node, spos);
-    STMT_PTR s_num_p = New_var_store(n_num_p, v_num_p, spos);
-    v_ub             = v_num_p;
+    CONST_VAR& v_num_p = Get_var(VAR_NUM_P, spos);
+    NODE_PTR   n_num_p = New_num_p(node, spos);
+    STMT_PTR   s_num_p = New_var_store(n_num_p, v_num_p, spos);
+    v_ub               = v_num_p;
     sl_outer.Append(s_num_p);
 
     // generate p_ofst node, p_ofst = num_alloc(node) -
     // get_num_primes_p(node)
     // TODO: p_ofst is known at compile time
-    VAR_PTR  v_p_ofst       = Get_var(VAR_P_OFST, spos);
-    NODE_PTR n_alloc_primes = New_num_alloc(node, spos);
-    NODE_PTR n_ld_p_num     = New_var_load(v_num_p, spos);
-    NODE_PTR n_sub          = New_bin_arith(air::core::CORE, air::core::SUB,
-                                            n_alloc_primes, n_ld_p_num, spos);
-    STMT_PTR s_pofst        = New_var_store(n_sub, v_p_ofst, spos);
+    CONST_VAR& v_p_ofst       = Get_var(VAR_P_OFST, spos);
+    NODE_PTR   n_alloc_primes = New_num_alloc(node, spos);
+    NODE_PTR   n_ld_p_num     = New_var_load(v_num_p, spos);
+    NODE_PTR   n_sub          = New_bin_arith(air::core::CORE, air::core::SUB,
+                                              n_alloc_primes, n_ld_p_num, spos);
+    STMT_PTR   s_pofst        = New_var_store(n_sub, v_p_ofst, spos);
     sl_outer.Append(s_pofst);
   } else {
     // store poly level to variable
-    VAR_PTR v_num_q  = Get_var(VAR_NUM_Q, spos);
-    v_ub             = v_num_q;
-    NODE_PTR n_num_q = New_get_num_q(node, spos);
-    STMT_PTR s_num_q = New_var_store(n_num_q, v_num_q, spos);
+    CONST_VAR& v_num_q = Get_var(VAR_NUM_Q, spos);
+    v_ub               = v_num_q;
+    NODE_PTR n_num_q   = New_get_num_q(node, spos);
+    STMT_PTR s_num_q   = New_var_store(n_num_q, v_num_q, spos);
     sl_outer.Append(s_num_q);
   }
 
   // 3. generate loop node
-  NODE_PTR n_ub        = New_var_load(v_ub, spos);
-  VAR_PTR  v_idx       = Get_var(VAR_RNS_IDX, spos);
-  STMT_PTR s_loop      = New_loop(v_idx, n_ub, 0, 1, spos);
-  NODE_PTR n_loop_body = s_loop->Node()->Child(3);
+  NODE_PTR   n_ub        = New_var_load(v_ub, spos);
+  CONST_VAR& v_idx       = Get_var(VAR_RNS_IDX, spos);
+  STMT_PTR   s_loop      = New_loop(v_idx, n_ub, 0, 1, spos);
+  NODE_PTR   n_loop_body = s_loop->Node()->Child(3);
   CMPLR_ASSERT(n_loop_body->Is_block(), "not a block node");
   STMT_LIST sl_body = STMT_LIST::Enclosing_list(n_loop_body->End_stmt());
   sl_outer.Append(s_loop);
@@ -1017,7 +1018,7 @@ NODE_PAIR POLY_IR_GEN::New_rns_loop(NODE_PTR node, bool is_ext) {
 NODE_PTR POLY_IR_GEN::New_decomp_loop(NODE_PTR               node,
                                       std::vector<STMT_PTR>& body_stmts,
                                       const SPOS&            spos) {
-  VAR_PTR v_part_idx = Get_var(VAR_PART_IDX, spos);
+  CONST_VAR& v_part_idx = Get_var(VAR_PART_IDX, spos);
 
   // loop upper bound
   air::base::CONST_TYPE_PTR ui32_type =
@@ -1038,26 +1039,26 @@ NODE_PTR POLY_IR_GEN::New_decomp_loop(NODE_PTR               node,
   return s_loop->Node();
 }
 
-NODE_PTR POLY_IR_GEN::New_key_switch(VAR_PTR v_swk_c0, VAR_PTR v_swk_c1,
-                                     VAR_PTR v_c1_ext, VAR_PTR v_key0,
-                                     VAR_PTR v_key1, const SPOS& spos,
+NODE_PTR POLY_IR_GEN::New_key_switch(CONST_VAR v_swk_c0, CONST_VAR v_swk_c1,
+                                     CONST_VAR v_c1_ext, CONST_VAR v_key0,
+                                     CONST_VAR v_key1, const SPOS& spos,
                                      bool is_ext) {
   NODE_PTR  n_c1_ext  = New_var_load(v_c1_ext, spos);
   NODE_PAIR n_blks    = New_rns_loop(n_c1_ext, is_ext);
   NODE_PTR  outer_blk = n_blks.first;
   NODE_PTR  body_blk  = n_blks.second;
 
-  VAR_PTR v_rns_idx  = Get_var(VAR_RNS_IDX, spos);
-  VAR_PTR v_tmp_poly = Get_var(VAR_TMP_POLY, spos);
-  VAR_PTR v_key_idx  = v_rns_idx;
+  CONST_VAR& v_tmp_poly = Get_var(VAR_TMP_POLY, spos);
+  VAR        v_rns_idx  = Get_var(VAR_RNS_IDX, spos);
+  VAR        v_key_idx  = v_rns_idx;
 
   if (is_ext) {
     // p_idx = rns_idx + p_ofst
-    VAR_PTR  v_p_ofst = Get_var(VAR_P_OFST, spos);
-    VAR_PTR  v_p_idx  = Get_var(VAR_P_IDX, spos);
-    NODE_PTR n_level  = New_var_load(v_rns_idx, spos);
-    NODE_PTR n_pofst  = New_var_load(v_p_ofst, spos);
-    NODE_PTR n_add =
+    CONST_VAR& v_p_ofst = Get_var(VAR_P_OFST, spos);
+    CONST_VAR& v_p_idx  = Get_var(VAR_P_IDX, spos);
+    NODE_PTR   n_level  = New_var_load(v_rns_idx, spos);
+    NODE_PTR   n_pofst  = New_var_load(v_p_ofst, spos);
+    NODE_PTR   n_add =
         New_bin_arith(air::core::CORE, air::core::ADD, n_level, n_pofst, spos);
     v_rns_idx       = v_p_idx;
     STMT_PTR s_pidx = New_var_store(n_add, v_p_idx, spos);
@@ -1066,9 +1067,9 @@ NODE_PTR POLY_IR_GEN::New_key_switch(VAR_PTR v_swk_c0, VAR_PTR v_swk_c1,
     // key_idx = rns_idx + key_p_ofst
     // key's p start ofst is different with input poly's p ofst
     // it always start from key's q count
-    VAR_PTR  v_key_pofst = Get_var(VAR_KEY_P_OFST, spos);
-    NODE_PTR n_key_pofst = New_get_num_q(New_var_load(v_key0, spos), spos);
-    STMT_PTR s_key_pofst = New_var_store(n_key_pofst, v_key_pofst, spos);
+    CONST_VAR& v_key_pofst = Get_var(VAR_KEY_P_OFST, spos);
+    NODE_PTR   n_key_pofst = New_get_num_q(New_var_load(v_key0, spos), spos);
+    STMT_PTR   s_key_pofst = New_var_store(n_key_pofst, v_key_pofst, spos);
     Append_rns_stmt(s_key_pofst, outer_blk);
 
     v_key_idx          = Get_var(VAR_KEY_P_IDX, spos);
@@ -1094,8 +1095,8 @@ NODE_PTR POLY_IR_GEN::New_key_switch(VAR_PTR v_swk_c0, VAR_PTR v_swk_c1,
   NODE_PTR n_c1_ext_at_level   = New_poly_load_at_level(n_c1_ext, v_rns_idx);
   NODE_PTR n_tmp_poly_at_level = New_poly_load_at_level(n_tmp_poly, n_zero);
 
-  VAR_PTR  v_modulus = Get_var(VAR_MODULUS, spos);
-  NODE_PTR n_modulus = New_var_load(v_modulus, spos);
+  CONST_VAR& v_modulus = Get_var(VAR_MODULUS, spos);
+  NODE_PTR   n_modulus = New_var_load(v_modulus, spos);
 
   // v_tmp_poly = hw_modmul(v_key0, v_c1_ext)
   // v_swk_c0 = hw_modadd(v_swk_c0, v_tmp_poly)

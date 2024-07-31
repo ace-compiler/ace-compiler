@@ -34,16 +34,16 @@ bool CKKS2POLY_RETV::Is_null() const {
 
 CKKS2POLY_RETV CKKS2POLY_CTX::Handle_lower_retv(NODE_PTR n_node,
                                                 NODE_PTR n_parent) {
-  SPOS    spos = n_node->Spos();
-  VAR_PTR v_parent;
+  SPOS spos = n_node->Spos();
+  VAR  v_parent;
   if (n_parent != air::base::Null_ptr && n_parent->Is_st()) {
     if (n_parent->Has_sym()) {
-      v_parent.Set_sym(n_parent->Addr_datum());
+      v_parent.Set_var(Func_scope(), n_parent->Addr_datum());
     } else if (n_parent->Has_preg()) {
-      v_parent.Set_preg(n_parent->Preg());
+      v_parent.Set_var(Func_scope(), n_parent->Preg());
     }
   }
-  VAR_PTR v_node = Poly_gen().Node_var(n_node);
+  CONST_VAR& v_node = Poly_gen().Node_var(n_node);
 
   if (!v_parent.Is_null() && !n_node->Is_ld()) {
     // for v_parent == v_node, already processed in callsite
@@ -92,9 +92,9 @@ CKKS2POLY_RETV CKKS2POLY_CTX::Handle_lower_retv(NODE_PTR n_node,
 CKKS2POLY_RETV CKKS2POLY::Handle_add_ciph(CKKS2POLY_CTX& ctx, NODE_PTR node,
                                           CKKS2POLY_RETV opnd0_pair,
                                           CKKS2POLY_RETV opnd1_pair) {
-  CONTAINER* cntr        = ctx.Poly_gen().Container();
-  VAR_PTR    modulus_var = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
-  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(modulus_var, node->Spos());
+  CONTAINER* cntr      = ctx.Poly_gen().Container();
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
+  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(v_modulus, node->Spos());
   CMPLR_ASSERT((!opnd0_pair.Is_null() && !opnd1_pair.Is_null()), "null node");
 
   NODE_PTR add_0 = ctx.Poly_gen().New_hw_modadd(
@@ -108,9 +108,9 @@ CKKS2POLY_RETV CKKS2POLY::Handle_add_ciph(CKKS2POLY_CTX& ctx, NODE_PTR node,
 CKKS2POLY_RETV CKKS2POLY::Handle_add_plain(CKKS2POLY_CTX& ctx, NODE_PTR node,
                                            CKKS2POLY_RETV opnd0_pair,
                                            CKKS2POLY_RETV opnd1_pair) {
-  CONTAINER* cntr        = ctx.Poly_gen().Container();
-  VAR_PTR    modulus_var = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
-  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(modulus_var, node->Spos());
+  CONTAINER* cntr      = ctx.Poly_gen().Container();
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
+  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(v_modulus, node->Spos());
 
   CMPLR_ASSERT((!opnd0_pair.Is_null() && !opnd1_pair.Is_null()), "null node");
 
@@ -133,17 +133,17 @@ CKKS2POLY_RETV CKKS2POLY::Handle_add_float(CKKS2POLY_CTX& ctx, NODE_PTR node,
   CONTAINER* cntr = ctx.Poly_gen().Container();
   SPOS       spos = node->Spos();
 
-  NODE_PTR n_child0  = node->Child(0);
-  VAR_PTR  v_child0  = ctx.Poly_gen().Node_var(n_child0);
-  VAR_PTR  v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
-  NODE_PTR n_modulus = ctx.Poly_gen().New_var_load(v_modulus, spos);
+  NODE_PTR   n_child0  = node->Child(0);
+  CONST_VAR& v_child0  = ctx.Poly_gen().Node_var(n_child0);
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
+  NODE_PTR   n_modulus = ctx.Poly_gen().New_var_load(v_modulus, spos);
 
   // 1. encode float data
   NODE_PTR n_encode =
       Gen_encode_float_from_ciph(ctx, v_child0, opnd1_pair.Node1(), false);
   air::base::ADDR_DATUM_PTR sym = ctx.Poly_gen().New_plain_var(spos);
-  VAR_PTR  v_encode = ctx.Poly_gen().Add_node_var(node->Child(1), sym);
-  STMT_PTR s_encode = ctx.Poly_gen().New_var_store(n_encode, v_encode, spos);
+  CONST_VAR& v_encode = ctx.Poly_gen().Add_node_var(node->Child(1), sym);
+  STMT_PTR   s_encode = ctx.Poly_gen().New_var_store(n_encode, v_encode, spos);
   // append to current block, before rns loop
   ctx.Prepend(s_encode);
 
@@ -170,8 +170,7 @@ CKKS2POLY_RETV CKKS2POLY::Handle_mul_ciph(CKKS2POLY_CTX& ctx, NODE_PTR node,
   GLOB_SCOPE* glob = cntr->Glob_scope();
   SPOS        spos = node->Spos();
 
-  VAR_PTR v_rns_idx = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
-  VAR_PTR v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
 
   // 1. v_mul_0 = opnd0_c0 * opnd1_c0
   NODE_PTR n_opnd2 = ctx.Poly_gen().New_var_load(v_modulus, node->Spos());
@@ -182,8 +181,8 @@ CKKS2POLY_RETV CKKS2POLY::Handle_mul_ciph(CKKS2POLY_CTX& ctx, NODE_PTR node,
   // Use temp variable v_mul_1_0 v_mul_1_1 to store intermediate result
   // v_mul_1_0 = opnd0_c1 * opnd1_c0
   // v_mul_1_1 = opnd0_c0 * opnd1_c0
-  VAR_PTR v_mul_1_0 = ctx.Poly_gen().New_poly_var(spos);
-  VAR_PTR v_mul_1_1 = ctx.Poly_gen().New_poly_var(spos);
+  CONST_VAR v_mul_1_0(ctx.Func_scope(), ctx.Poly_gen().New_poly_var(spos));
+  CONST_VAR v_mul_1_1(ctx.Func_scope(), ctx.Poly_gen().New_poly_var(spos));
 
   // alocate memory for v_mul_1_0 and v_mul_1_1
   // only need 1 prime to store the temp coeffcients
@@ -238,9 +237,9 @@ CKKS2POLY_RETV CKKS2POLY::Handle_mul_plain(CKKS2POLY_CTX& ctx, NODE_PTR node,
                 opnd1_pair.Kind() == RETV_KIND::RK_PLAIN_RNS_POLY),
                "null node");
 
-  CONTAINER* cntr        = ctx.Poly_gen().Container();
-  VAR_PTR    modulus_var = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
-  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(modulus_var, node->Spos());
+  CONTAINER* cntr      = ctx.Poly_gen().Container();
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, node->Spos());
+  NODE_PTR   new_opnd2 = ctx.Poly_gen().New_var_load(v_modulus, node->Spos());
 
   // TODO: shall we share the nodes in different op?
   NODE_PTR mul_0 = ctx.Poly_gen().New_hw_modmul(
@@ -262,16 +261,16 @@ CKKS2POLY_RETV CKKS2POLY::Handle_mul_float(CKKS2POLY_CTX& ctx, NODE_PTR node,
   CONTAINER* cntr = ctx.Poly_gen().Container();
   SPOS       spos = node->Spos();
 
-  NODE_PTR n_child0  = node->Child(0);
-  VAR_PTR  v_child0  = ctx.Poly_gen().Node_var(n_child0);
-  VAR_PTR  v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
-  NODE_PTR n_modulus = ctx.Poly_gen().New_var_load(v_modulus, spos);
+  NODE_PTR   n_child0  = node->Child(0);
+  CONST_VAR& v_child0  = ctx.Poly_gen().Node_var(n_child0);
+  CONST_VAR& v_modulus = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
+  NODE_PTR   n_modulus = ctx.Poly_gen().New_var_load(v_modulus, spos);
 
   NODE_PTR n_encode =
       Gen_encode_float_from_ciph(ctx, v_child0, opnd1_pair.Node1(), true);
   air::base::ADDR_DATUM_PTR sym = ctx.Poly_gen().New_plain_var(spos);
-  VAR_PTR  v_encode = ctx.Poly_gen().Add_node_var(node->Child(1), sym);
-  STMT_PTR s_encode = ctx.Poly_gen().New_var_store(n_encode, v_encode, spos);
+  CONST_VAR& v_encode = ctx.Poly_gen().Add_node_var(node->Child(1), sym);
+  STMT_PTR   s_encode = ctx.Poly_gen().New_var_store(n_encode, v_encode, spos);
   // append to current block, before rns loop
   ctx.Prepend(s_encode);
 
@@ -294,10 +293,10 @@ NODE_PTR CKKS2POLY::Expand_rotate(CKKS2POLY_CTX& ctx, NODE_PTR node,
   GLOB_SCOPE* glob        = ctx.Poly_gen().Glob_scope();
   NODE_PTR    n_outer_blk = cntr->New_stmt_block(spos);
   STMT_LIST   sl_outer    = STMT_LIST::Enclosing_list(n_outer_blk->End_stmt());
-  VAR_PTR     v_rot_res =
+  CONST_VAR&  v_rot_res =
       ctx.Config().Inline_rotate()
-              ? ctx.Poly_gen().Node_var(node)
-              : ctx.Poly_gen().Get_var(POLY_PREDEF_VAR::VAR_ROT_RES, spos);
+           ? ctx.Poly_gen().Node_var(node)
+           : ctx.Poly_gen().Get_var(POLY_PREDEF_VAR::VAR_ROT_RES, spos);
 
   // gen init for rotate result
   if (ctx.Config().Inline_rotate()) {
@@ -320,9 +319,9 @@ NODE_PTR CKKS2POLY::Expand_rotate(CKKS2POLY_CTX& ctx, NODE_PTR node,
   Handle_kswitch_alloc(ctx, sl_outer, n_c0, n_c1, spos);
 
   // 3. get switch key with given index
-  NODE_PTR n_swk = ctx.Poly_gen().New_swk(true, spos, n_rot_idx);
-  VAR_PTR  v_swk = ctx.Poly_gen().Get_var(VAR_SWK, spos);
-  STMT_PTR s_swk = ctx.Poly_gen().New_var_store(n_swk, v_swk, spos);
+  NODE_PTR   n_swk = ctx.Poly_gen().New_swk(true, spos, n_rot_idx);
+  CONST_VAR& v_swk = ctx.Poly_gen().Get_var(VAR_SWK, spos);
+  STMT_PTR   s_swk = ctx.Poly_gen().New_var_store(n_swk, v_swk, spos);
   sl_outer.Append(s_swk);
 
   // 4. generate decompose loop to iterate all q parts and perform keyswitch
@@ -361,8 +360,8 @@ void CKKS2POLY::Gen_rotate_func(CKKS2POLY_CTX& ctx, NODE_PTR node,
     cntr->New_func_entry(spos);
 
     // create formals and expand rotate operations to the new rotate function
-    VAR_PTR   f_rot_opnd0 = fs->Formal(0);
-    VAR_PTR   f_rot_opnd1 = fs->Formal(1);
+    CONST_VAR f_rot_opnd0(fs, fs->Formal(0));
+    CONST_VAR f_rot_opnd1(fs, fs->Formal(1));
     NODE_PAIR opnd0_pair =
         ctx.Poly_gen().New_ciph_poly_load(f_rot_opnd0, false, spos);
     NODE_PTR n_opnd1    = ctx.Poly_gen().New_var_load(f_rot_opnd1, spos);
@@ -387,7 +386,7 @@ void CKKS2POLY::Call_rotate(CKKS2POLY_CTX& ctx, NODE_PTR node, NODE_PTR n_arg0,
   // Call the rotate function and process return value
   TYPE_PTR t_ciph = ctx.Poly_gen().Get_type(VAR_TYPE_KIND::CIPH, spos);
   PREG_PTR retv   = air::base::Null_ptr;
-  VAR_PTR  v_rot_res;
+  VAR      v_rot_res;
   if (ctx.Poly_gen().Has_node_var(node)) {
     v_rot_res = ctx.Poly_gen().Node_var(node);
     // reuse v_rot_res as call return if it is a preg
@@ -405,7 +404,7 @@ void CKKS2POLY::Call_rotate(CKKS2POLY_CTX& ctx, NODE_PTR node, NODE_PTR n_arg0,
   cntr->New_arg(s_call, 1, n_arg1);
   ctx.Prepend(s_call);
 
-  VAR_PTR v_retv(retv);
+  CONST_VAR v_retv(ctx.Func_scope(), retv);
   if (!v_rot_res.Is_null() && v_retv != v_rot_res) {
     // copy the data from preg to store symbol
     STMT_PTR s_res = ctx.Poly_gen().New_var_store(cntr->New_ldp(retv, spos),
@@ -428,13 +427,13 @@ void CKKS2POLY::Handle_kswitch_alloc(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
   NODE_PTR n_alloc_decomp = ctx.Poly_gen().New_alloc_poly(n_c0, false, spos);
   NODE_PTR n_alloc_tmp    = ctx.Poly_gen().New_alloc_poly(1, spos);
 
-  VAR_PTR  v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
-  VAR_PTR  v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
-  VAR_PTR  v_c1_ext      = ctx.Poly_gen().Get_var(VAR_EXT, spos);
-  VAR_PTR  v_tmp         = ctx.Poly_gen().Get_var(VAR_TMP_POLY, spos);
-  VAR_PTR  v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR  v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
-  STMT_PTR s_alloc_swk_c0 =
+  CONST_VAR& v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
+  CONST_VAR& v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
+  CONST_VAR& v_c1_ext      = ctx.Poly_gen().Get_var(VAR_EXT, spos);
+  CONST_VAR& v_tmp         = ctx.Poly_gen().Get_var(VAR_TMP_POLY, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  STMT_PTR   s_alloc_swk_c0 =
       ctx.Poly_gen().New_var_store(n_alloc_swk_c0, v_swk_c0, spos);
   STMT_PTR s_alloc_swk_c1 =
       ctx.Poly_gen().New_var_store(n_alloc_swk_c1, v_swk_c1, spos);
@@ -451,8 +450,8 @@ void CKKS2POLY::Handle_kswitch_alloc(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
   sl.Append(s_alloc_mod_down_c0);
   sl.Append(s_alloc_mod_down_c1);
   if (!ctx.Config().Fuse_decomp_modup()) {
-    VAR_PTR  v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
-    STMT_PTR s_decomp =
+    CONST_VAR& v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
+    STMT_PTR   s_decomp =
         ctx.Poly_gen().New_var_store(n_alloc_decomp, v_decomp, spos);
     sl.Append(s_decomp);
   }
@@ -460,17 +459,17 @@ void CKKS2POLY::Handle_kswitch_alloc(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
 
 void CKKS2POLY::Handle_kswitch_free(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
                                     const SPOS& spos) {
-  VAR_PTR  v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
-  VAR_PTR  v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
-  VAR_PTR  v_c1_ext      = ctx.Poly_gen().Get_var(VAR_EXT, spos);
-  VAR_PTR  v_tmp         = ctx.Poly_gen().Get_var(VAR_TMP_POLY, spos);
-  VAR_PTR  v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR  v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
-  STMT_PTR s_free_swk_c0 = ctx.Poly_gen().New_free_poly(v_swk_c0, spos);
-  STMT_PTR s_free_swk_c1 = ctx.Poly_gen().New_free_poly(v_swk_c1, spos);
-  STMT_PTR s_free_ext    = ctx.Poly_gen().New_free_poly(v_c1_ext, spos);
-  STMT_PTR s_free_tmp    = ctx.Poly_gen().New_free_poly(v_tmp, spos);
-  STMT_PTR s_free_mod_down_c0 =
+  CONST_VAR& v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
+  CONST_VAR& v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
+  CONST_VAR& v_c1_ext      = ctx.Poly_gen().Get_var(VAR_EXT, spos);
+  CONST_VAR& v_tmp         = ctx.Poly_gen().Get_var(VAR_TMP_POLY, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  STMT_PTR   s_free_swk_c0 = ctx.Poly_gen().New_free_poly(v_swk_c0, spos);
+  STMT_PTR   s_free_swk_c1 = ctx.Poly_gen().New_free_poly(v_swk_c1, spos);
+  STMT_PTR   s_free_ext    = ctx.Poly_gen().New_free_poly(v_c1_ext, spos);
+  STMT_PTR   s_free_tmp    = ctx.Poly_gen().New_free_poly(v_tmp, spos);
+  STMT_PTR   s_free_mod_down_c0 =
       ctx.Poly_gen().New_free_poly(v_mod_down_c0, spos);
   STMT_PTR s_free_mod_down_c1 =
       ctx.Poly_gen().New_free_poly(v_mod_down_c1, spos);
@@ -482,22 +481,23 @@ void CKKS2POLY::Handle_kswitch_free(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
   sl.Append(s_free_mod_down_c1);
 
   if (!ctx.Config().Fuse_decomp_modup()) {
-    VAR_PTR  v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
-    STMT_PTR s_decomp = ctx.Poly_gen().New_free_poly(v_decomp, spos);
+    CONST_VAR& v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
+    STMT_PTR   s_decomp = ctx.Poly_gen().New_free_poly(v_decomp, spos);
     sl.Append(s_decomp);
   }
 }
 
-void CKKS2POLY::Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl, VAR_PTR v_key,
-                               NODE_PTR n_c1, const SPOS& spos) {
+void CKKS2POLY::Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
+                               CONST_VAR v_key, NODE_PTR n_c1,
+                               const SPOS& spos) {
   CONTAINER*            cntr = ctx.Poly_gen().Container();
   std::vector<STMT_PTR> body_stmts;
-  VAR_PTR               v_c1_ext   = ctx.Poly_gen().Get_var(VAR_EXT, spos);
-  VAR_PTR               v_part_idx = ctx.Poly_gen().Get_var(VAR_PART_IDX, spos);
-  VAR_PTR               v_swk_c0   = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
-  VAR_PTR               v_swk_c1   = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
-  VAR_PTR               v_key0     = ctx.Poly_gen().Get_var(VAR_PUB_KEY0, spos);
-  VAR_PTR               v_key1     = ctx.Poly_gen().Get_var(VAR_PUB_KEY1, spos);
+  CONST_VAR&            v_c1_ext   = ctx.Poly_gen().Get_var(VAR_EXT, spos);
+  CONST_VAR&            v_part_idx = ctx.Poly_gen().Get_var(VAR_PART_IDX, spos);
+  CONST_VAR&            v_swk_c0   = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
+  CONST_VAR&            v_swk_c1   = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
+  CONST_VAR&            v_key0     = ctx.Poly_gen().Get_var(VAR_PUB_KEY0, spos);
+  CONST_VAR&            v_key1     = ctx.Poly_gen().Get_var(VAR_PUB_KEY1, spos);
 
   if (ctx.Config().Fuse_decomp_modup()) {
     NODE_PTR n_decomp_modup =
@@ -507,8 +507,8 @@ void CKKS2POLY::Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl, VAR_PTR v_key,
     body_stmts.push_back(s_modup);
   } else {
     // decomp
-    VAR_PTR  v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
-    NODE_PTR n_decomp = ctx.Poly_gen().New_decomp(n_c1, v_part_idx, spos);
+    CONST_VAR& v_decomp = ctx.Poly_gen().Get_var(VAR_DECOMP, spos);
+    NODE_PTR   n_decomp = ctx.Poly_gen().New_decomp(n_c1, v_part_idx, spos);
     STMT_PTR s_decomp = ctx.Poly_gen().New_var_store(n_decomp, v_decomp, spos);
     body_stmts.push_back(s_decomp);
 
@@ -542,10 +542,10 @@ void CKKS2POLY::Handle_kswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl, VAR_PTR v_key,
 void CKKS2POLY::Handle_mod_down(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
                                 const SPOS& spos) {
   CONTAINER* cntr          = ctx.Poly_gen().Container();
-  VAR_PTR    v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
-  VAR_PTR    v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
-  VAR_PTR    v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR    v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  CONST_VAR& v_swk_c0      = ctx.Poly_gen().Get_var(VAR_SWK_C0, spos);
+  CONST_VAR& v_swk_c1      = ctx.Poly_gen().Get_var(VAR_SWK_C1, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
 
   // v_mod_down_c0 = mod_down(v_swk_c0)
   NODE_PTR n_swk_c0      = ctx.Poly_gen().New_var_load(v_swk_c0, spos);
@@ -567,10 +567,10 @@ void CKKS2POLY::Handle_rotate_post_keyswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
                                              NODE_PTR n_c0, const SPOS& spos) {
   CONTAINER* cntr = ctx.Poly_gen().Container();
 
-  VAR_PTR v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
-  VAR_PTR v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
-  VAR_PTR v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  CONST_VAR& v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
+  CONST_VAR& v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
 
   // v_mod_down_c0 = v_mod_down_c0 + v_c0
   NODE_PTR n_mod_down_c0 = ctx.Poly_gen().New_var_load(v_mod_down_c0, spos);
@@ -591,15 +591,15 @@ void CKKS2POLY::Handle_rotate_post_keyswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
 }
 
 void CKKS2POLY::Handle_automorphism(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
-                                    VAR_PTR v_rot_res, NODE_PTR n_rot_idx,
+                                    CONST_VAR v_rot_res, NODE_PTR n_rot_idx,
                                     const SPOS& spos) {
   CONTAINER* cntr = ctx.Poly_gen().Container();
 
-  VAR_PTR v_order       = ctx.Poly_gen().Get_var(VAR_AUTO_ORDER, spos);
-  VAR_PTR v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
-  VAR_PTR v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
-  VAR_PTR v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
+  CONST_VAR& v_order       = ctx.Poly_gen().Get_var(VAR_AUTO_ORDER, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  CONST_VAR& v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
+  CONST_VAR& v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
 
   // generate automorphism orders
   NODE_PTR n_order = ctx.Poly_gen().New_auto_order(n_rot_idx, spos);
@@ -660,14 +660,15 @@ bool CKKS2POLY::Is_gen_rns_loop(NODE_PTR parent, NODE_PTR node) {
 }
 
 void CKKS2POLY::Handle_relin_post_keyswitch(CKKS2POLY_CTX& ctx, STMT_LIST& sl,
-                                            VAR_PTR v_relin_res, NODE_PTR n_c0,
-                                            NODE_PTR n_c1, const SPOS& spos) {
+                                            CONST_VAR v_relin_res,
+                                            NODE_PTR n_c0, NODE_PTR n_c1,
+                                            const SPOS& spos) {
   CONTAINER* cntr = ctx.Poly_gen().Container();
 
-  VAR_PTR v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
-  VAR_PTR v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
-  VAR_PTR v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
-  VAR_PTR v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
+  CONST_VAR& v_mod_down_c0 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C0, spos);
+  CONST_VAR& v_mod_down_c1 = ctx.Poly_gen().Get_var(VAR_MOD_DOWN_C1, spos);
+  CONST_VAR& v_rns_idx     = ctx.Poly_gen().Get_var(VAR_RNS_IDX, spos);
+  CONST_VAR& v_modulus     = ctx.Poly_gen().Get_var(VAR_MODULUS, spos);
 
   // v_relin_c0 = v_mod_down_c0 + v_c0
   NODE_PTR n_mod_down_c0 = ctx.Poly_gen().New_var_load(v_mod_down_c0, spos);
@@ -705,10 +706,10 @@ NODE_PTR CKKS2POLY::Expand_relin(CKKS2POLY_CTX& ctx, NODE_PTR node,
   SPOS        spos        = node->Spos();
   NODE_PTR    n_outer_blk = cntr->New_stmt_block(spos);
   STMT_LIST   sl_outer    = STMT_LIST::Enclosing_list(n_outer_blk->End_stmt());
-  VAR_PTR     v_relin_res =
+  CONST_VAR&  v_relin_res =
       ctx.Config().Inline_relin()
-              ? ctx.Poly_gen().Node_var(node)
-              : ctx.Poly_gen().Get_var(POLY_PREDEF_VAR::VAR_RELIN_RES, spos);
+           ? ctx.Poly_gen().Node_var(node)
+           : ctx.Poly_gen().Get_var(POLY_PREDEF_VAR::VAR_RELIN_RES, spos);
 
   // gen init for relinearize result
   if (ctx.Config().Inline_relin()) {
@@ -731,9 +732,9 @@ NODE_PTR CKKS2POLY::Expand_relin(CKKS2POLY_CTX& ctx, NODE_PTR node,
   Handle_kswitch_alloc(ctx, sl_outer, n_c0, n_c2, spos);
 
   // 3. get switch key with given index
-  NODE_PTR n_swk = ctx.Poly_gen().New_swk(false, spos);
-  VAR_PTR  v_swk = ctx.Poly_gen().Get_var(VAR_SWK, spos);
-  STMT_PTR s_swk = ctx.Poly_gen().New_var_store(n_swk, v_swk, spos);
+  NODE_PTR   n_swk = ctx.Poly_gen().New_swk(false, spos);
+  CONST_VAR& v_swk = ctx.Poly_gen().Get_var(VAR_SWK, spos);
+  STMT_PTR   s_swk = ctx.Poly_gen().New_var_store(n_swk, v_swk, spos);
   sl_outer.Append(s_swk);
 
   // 4. generate decompose loop to iterate all q parts and perform keyswitch
@@ -771,7 +772,7 @@ void CKKS2POLY::Gen_relin_func(CKKS2POLY_CTX& ctx, NODE_PTR node,
     ctx.Poly_gen().Enter_func(fs);
 
     // create formals and expand rotate operations to the new rotate function
-    VAR_PTR     f_relin_opnd0 = fs->Formal(0);
+    CONST_VAR   f_relin_opnd0(fs, fs->Formal(0));
     NODE_TRIPLE n_opnd0_triple =
         ctx.Poly_gen().New_ciph3_poly_load(f_relin_opnd0, false, spos);
     NODE_PTR parent_blk = ctx.Poly_gen().Container()->Stmt_list().Block_node();
@@ -795,7 +796,7 @@ void CKKS2POLY::Call_relin(CKKS2POLY_CTX& ctx, NODE_PTR node, NODE_PTR n_arg) {
   // Call the relin function and process return value
   TYPE_PTR t_ciph = ctx.Poly_gen().Get_type(VAR_TYPE_KIND::CIPH, spos);
   PREG_PTR retv   = air::base::Null_ptr;
-  VAR_PTR  v_relin_res;
+  VAR      v_relin_res;
   if (ctx.Poly_gen().Has_node_var(node)) {
     v_relin_res = ctx.Poly_gen().Node_var(node);
     // reuse v_relin_res as call return if it is a preg
@@ -813,7 +814,7 @@ void CKKS2POLY::Call_relin(CKKS2POLY_CTX& ctx, NODE_PTR node, NODE_PTR n_arg) {
   cntr->New_arg(s_call, 0, n_arg);
   ctx.Prepend(s_call);
 
-  VAR_PTR v_retv(retv);
+  CONST_VAR v_retv(ctx.Func_scope(), retv);
   if (!v_relin_res.Is_null() && v_retv != v_relin_res) {
     // copy the data from preg to store symbol
     STMT_PTR s_res = ctx.Poly_gen().New_var_store(cntr->New_ldp(retv, spos),
@@ -823,7 +824,7 @@ void CKKS2POLY::Call_relin(CKKS2POLY_CTX& ctx, NODE_PTR node, NODE_PTR n_arg) {
 }
 
 NODE_PTR CKKS2POLY::Gen_encode_float_from_ciph(CKKS2POLY_CTX& ctx,
-                                               VAR_PTR v_ciph, NODE_PTR n_cst,
+                                               CONST_VAR v_ciph, NODE_PTR n_cst,
                                                bool is_mul) {
   CONTAINER* cntr = ctx.Poly_gen().Container();
   SPOS       spos = n_cst->Spos();
