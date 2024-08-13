@@ -9,10 +9,6 @@ import datetime
 
 MODELS = ['ResNet-20', 'ResNet-32', 'ResNet-32*', 'ResNet-44', 'ResNet-56', 'ResNet-110']
 INDEXES = ['resnet20_cifar10', 'resnet32_cifar10', 'resnet32_cifar100', 'resnet44_cifar10', 'resnet56_cifar10', 'resnet110_cifar10']
-# UNC10 = [100, 100, 70, 100, 100, 100]
-# ENC10 = [100, 100, 60, 90, 100, 100]
-#UNENCRYPTED = [90.6, 92.8, 66.4, 92.5, 93.9, 94.0]
-#ENCRYPTED = [91.0, 93.5, 69.1, 92.4, 94.8, 93.3]
 
 def write_log(info, log):
     print(info[:-1])
@@ -53,6 +49,8 @@ def run_raw_accuracy(image_num, log, debug):
     '''
     Run unencrypted accuracy test for all models with given image numbers
     '''
+    info = '-------- Unencrypted Accuracy for %d Images --------\n' % image_num
+    write_log(info, log)
     acc_res = []
     cifar_path = '/app/cifar'
     if not os.path.exists(cifar_path):
@@ -90,7 +88,7 @@ def run_raw_accuracy(image_num, log, debug):
             print(' '.join(cmds))
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
-        info = '%s: Unencrypted inference failed!\n' % rn
+        info = '%s: Inference Failed!\n' % rn
         if ret.returncode == 0:
             rtime, rmemory = time_and_memory(ret.stderr.decode().splitlines()[0])
             time = float(rtime)
@@ -99,10 +97,10 @@ def run_raw_accuracy(image_num, log, debug):
             if max_memory < memory:
                 max_memory = memory
             accuracy = float(ret.stdout.decode().splitlines()[-1].split(':')[1].strip()) * 100
-            info = '%s: Unencrypted Accuracy (%d images) = %.1f%%\n' % (rn, image_num, accuracy)
+            info = '%s: Unencrypted Accuracy = %.1f%%\n' % (rn, accuracy)
         acc_res.append(accuracy)
         write_log(info, log)
-    info = 'Images = %d, Total time = %.2f(s), Max memory usage = %.1f(Gb)\n' % (image_num, total_time, max_memory)
+    info = 'Total time = %.2f(s), Max memory usage = %.1f(Gb)\n' % (total_time, max_memory)
     write_log(info, log)
     return acc_res
 
@@ -110,6 +108,8 @@ def run_ace_accuracy(image_num, log, debug):
     '''
     Run ACE accuracy test for all models with given image numbers
     '''
+    info = '-------- Encrypted Accuracy via ACE for %d Images --------\n' % image_num
+    write_log(info, log)
     acc_res = []
     script = '/app/scripts/accuracy.sh'
     if not os.path.exists(script):
@@ -123,7 +123,7 @@ def run_ace_accuracy(image_num, log, debug):
             print(' '.join(cmds))
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
-        info = '%s: ACE Accuracy test failed to complete!\n' % rn
+        info = '%s: Inference Failed!\n' % rn
         if ret.returncode == 0:
             rtime, rmemory = time_and_memory(ret.stderr.decode().splitlines()[0])
             time = float(rtime)
@@ -137,17 +137,16 @@ def run_ace_accuracy(image_num, log, debug):
                     continue
                 item = line.split(' ')
                 accuracy = float(item[6].strip().split(',')[0].strip()) * 100
-            info = '%s: ACE Accuracy (%d images) = %.1f%%, Time = %.2f(s), Memory = %.1f(GB)\n' % (rn, image_num, accuracy, time, memory)
+            info = '%s: Accuracy = %.1f%%, Time = %.2f(s), Memory = %.1f(GB)\n' % (rn, accuracy, time, memory)
         acc_res.append(accuracy)
         write_log(info, log)
-    info = 'Images = %d, Total time = %.2f(s), Max memory usage = %.1f(Gb)\n' % (image_num, total_time, max_memory)
+    info = 'Total time = %.2f(s), Max memory usage = %.1f(Gb)\n' % (total_time, max_memory)
     write_log(info, log)
     return acc_res
 
 def main():
     parser = argparse.ArgumentParser(description='Run accuracy data for ACE Framework')
     parser.add_argument('-n', '--num', type=int, default=10, help='Number of images to run for each model, ranges: [0, 10000]')
-#    parser.add_argument('-l', '--log', metavar='PATH', help='Generate Table 10 using data from log file')
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Print out debug info')
     args = parser.parse_args()
     debug = args.debug
@@ -155,10 +154,10 @@ def main():
     date_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     log_file_name = date_time + '_acc_' + str(image_num) + '.log'
     log = open(os.path.join(os.getcwd(), log_file_name), 'w')
-    # generate_accuracy(UNC10, ENC10, log)
-    # return
     raw_acc = run_raw_accuracy(image_num, log, debug)
     ace_acc = run_ace_accuracy(image_num, log, debug)
+    info = '-------- Accuracy Test Done --------\n'
+    write_log(info, log)
     generate_accuracy(raw_acc, ace_acc, log)
     log.close()
     return

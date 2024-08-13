@@ -3,6 +3,8 @@ README
 
 We provide instructions to enable the evaluation of the artifact associated with our CGO'25 Tool Paper, titled "ACE: An FHE Compiler Framework for Automating Neural Network Inference." This paper presents ACE, an FHE compiler that converts ONNX models into equivalent FHE models to perform encrypted inference.
 
+ACE is the first FHE compiler to automatically compile ONNX models to C/C++ using CKKS for CPUs. It has been evaluated with various ResNet models, including ResNet110, the most complex used in FHE compiler research. Developed as an open-source tool with 44-man months of engineering from several experts, ACE is set to significantly benefit the compiler community in this critical area.
+
 In our evaluation, we compared the ACE compiler with expert hand-tuned implementations using six ResNet models: ResNet-[20|32|44|56|110] on CIFAR-10 and ResNet-32 on CIFAR-100 (referred to as ResNet-32*). The objective of this artifact evaluation is to reproduce our results, presented in Figures 5-7 and Tables 9-10:
 - **Figure 5**: Compile times achieved by ACE
 - **Figure 6**: Comparison of encrypted inference times between ACE and expert implementations
@@ -19,7 +21,7 @@ To generate Figures 5-7 and Table 9, the process will take approximately 18 hour
 Reproducing Table 10 presents a significant challenge due to the computational intensity required for artifact evaluation. To facilitate this, we have provided a script that generates the table using only 10 images per model. On a computing platform equipped with 10 cores (details provided below), completing this process is expected to take approximately 7 hours. Please note, however, that the results obtained with this abbreviated method should be considered approximate. For those who wish to conduct tests using 1,000 images per model, please be aware that this extended evaluation will take over 140 hours on a 64-core platform.
 
 
-*It is important to note that, like existing FHE compilers, the ACE compiler produces accuracy for encrypted inference that is comparable to unencrypted inference. Table 10 does not, in itself, represent a contribution to the paper but is included for completeness. Table 9 simply lists the security parameters used by the ACE compiler. The major results of this paper are presented in Figures 5-7, where Figures 6 and 7 compare the ACE compiler with expert hand-tuned implementations in terms of encrypted inference time and memory usage.*
+*It is important to note that, like existing FHE compilers, the ACE compiler produces accuracy for encrypted inference that is comparable to unencrypted inference. Table 10 does not, in itself, represent a contribution in this paper but is included for completeness. Table 9 simply lists the security parameters used by the ACE compiler. The major results of this paper are presented in Figures 5-7, where Figures 6 and 7 compare the ACE compiler with expert hand-tuned implementations in terms of encrypted inference time and memory usage.*
 
 
 To facilitate artifact evaluation, we provide detailed steps, environment setup, and execution guidelines to ensure that the findings of our research can be independently verified.
