@@ -34,6 +34,8 @@ RUN pip3 install PyYAML==5.3.1 &&\
     pip3 install torchvision==0.15.2 && \
     rm -rf /root/.cache/pip
 
+WORKDIR /app/cifar
+
 RUN wget -qO- https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz | tar xzv --strip-components=1 && \
     wget -qO- https://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz | tar xzv --strip-components=1 && \
     wget https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz && \
