@@ -5,6 +5,7 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 ACE='ACE'
 EXPERT='Expert'
@@ -13,6 +14,9 @@ EXEC='Exec'
 TIME='Time'
 MEMORY='Memory'
 KEYMEMORY='KeyMemory'
+LOGN='LogN'
+LOGQ0='LogQ0'
+DELTA='Delta'
 MODELS = ['ResNet-20', 'ResNet-32', 'ResNet-32*', 'ResNet-44', 'ResNet-56', 'ResNet-110']
 INDEXES = ['resnet20_cifar10', 'resnet32_cifar10', 'resnet32_cifar100', 'resnet44_cifar10', 'resnet56_cifar10', 'resnet110_cifar10']
 FRONTEND='ONNX2AIR'
@@ -92,8 +96,9 @@ def generate_comp_time(result):
     for a, b in zip(idx, ace_compile_time):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('comp_time.pdf')
+    plt.savefig('Figure5.pdf')
     plt.close()
+    print('Figure5.pdf generated!')
     return
 
 def generate_exec_time(result):
@@ -172,8 +177,10 @@ def generate_exec_time(result):
     for a, b in zip(idx+BARWIDTH, exp_exec_time):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('exec_time.pdf', pad_inches=0)
+    plt.savefig('Figure6.pdf', pad_inches=0)
     plt.close()
+    print('Figure6.pdf generated!')
+    return
 
     # Print out analysis info
     ace_exec_total_time = 0
@@ -245,8 +252,10 @@ def generate_exec_mem(result):
     for a, b in zip(idx+BARWIDTH, exp_mem):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('exec_mem.pdf')
+    plt.savefig('Figure7.pdf')
     plt.close()
+    print('Figure7.pdf generated!')
+    return
 
     # Print out analysis info
     ace_total_mem = 0
@@ -264,10 +273,35 @@ def generate_exec_mem(result):
           'KeyMemory reduced: %.1f%%' % (100 * (1 - ace_key_total_mem/exp_key_total_mem)))
     return
 
+def generate_sec_param(result):
+    '''
+    Generate security parameters selected for CKKS table
+    '''
+    rows = []
+    for idx in range(len(MODELS)):
+        onnx_model = INDEXES[idx]
+        exec_info = result[ACE][onnx_model][EXEC]
+        log2_n = int(math.log2(exec_info[LOGN]))
+        log2_q0 = exec_info[LOGQ0]
+        delta = exec_info[DELTA]
+        rows.append([MODELS[idx], log2_n, log2_q0, delta])
+
+    fig, ax = plt.subplots()
+    ax.axis('off')
+    ax.table(cellText=rows, \
+             colLabels=['Model', 'log\u2082(N)', 'log\u2082(Q\u2080)', 'log\u2082(\u0394)'], \
+             cellLoc='center', loc='center')
+    fig.tight_layout()
+    plt.savefig('Table9.pdf', pad_inches=0)
+    plt.close()
+    print('Table9.pdf generated!')
+    return
+
 def generate_figures(result):
     generate_comp_time(result)
     generate_exec_time(result)
     generate_exec_mem(result)
+    generate_sec_param(result)
     return
 
 def read_ace_log(log_file, result):
@@ -304,6 +338,12 @@ def read_ace_log(log_file, result):
                 result[ACE][onnx_model][EXEC][MEMORY] = float(all_mem)
                 key_mem = info[3].strip().split('(')[0]
                 result[ACE][onnx_model][EXEC][KEYMEMORY] = float(key_mem)
+                log2_n = info[8].strip().split(' ')[0]
+                result[ACE][onnx_model][EXEC][LOGN] = int(log2_n)
+                log2_q0 = info[9].strip().split(' ')[0]
+                result[ACE][onnx_model][EXEC][LOGQ0] = int(log2_q0)
+                delta = info[10].strip().split(' ')[0]
+                result[ACE][onnx_model][EXEC][DELTA] = int(delta)
                 in_comp = False
                 in_exec = True
             elif line.find('-------- Done --------') != -1:
