@@ -12,7 +12,6 @@ RUN apt-get update && \
                         g++ \
                         cmake \
                         ninja-build \
-                        clang-10 \
                         python3 \
                         python3-pip \
                         python3-dev \
@@ -26,22 +25,21 @@ RUN apt-get update && \
                         libntl-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install torch==2.0.1 && \
+RUN pip3 install PyYAML==5.3.1 &&\
+    pip3 install torch==2.0.1 && \
     pip3 install onnx==1.14.1 && \
     pip3 install onnxruntime==1.15.1 && \
     pip3 install matplotlib==3.7.5 && \
-    pip3 install numpy==1.24.4
-
-WORKDIR /app/cifar
+    pip3 install numpy==1.24.4 && \
+    pip3 install torchvision==0.15.2 && \
+    rm -rf /root/.cache/pip
 
 RUN wget -qO- https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz | tar xzv --strip-components=1 && \
-    wget -qO- https://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz | tar xzv --strip-components=1
-
-
-WORKDIR /app
+    wget -qO- https://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz | tar xzv --strip-components=1 && \
+    wget https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz && \
+    wget https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
 
 # copy soucecode & scipt
+WORKDIR /app
+
 COPY ./ .
-
-ENTRYPOINT ["/app/scripts/entrypoint.sh"]
-
