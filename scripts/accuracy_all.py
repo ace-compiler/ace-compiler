@@ -123,7 +123,8 @@ def run_ace_accuracy(image_num, log, debug):
             print(' '.join(cmds))
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
-        info = '%s: Inference Failed!\n' % rn
+        err_log = '/app/release_openmp/' + rn + '.acc.0.' + str(image_num-1) + '.log'
+        info = '%s: Inference Failed! Refer to \'%s\' for details.\n' % (rn, err_log)
         if ret.returncode == 0:
             rtime, rmemory = time_and_memory(ret.stderr.decode().splitlines()[0])
             time = float(rtime)

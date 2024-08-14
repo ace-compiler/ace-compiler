@@ -16,9 +16,9 @@ In our evaluation, we compared the ACE compiler with expert hand-tuned implement
 
 It is essential to emphasize that FHE remains up to 10,000 times slower than unencrypted computation, even for small machine learning models. To achieve the results presented in Table 10, we tested 1,000 images for each of the six ResNet models. Performing these tests would require approximately 5,000 hours (over 208 days) if conducted sequentially using a single thread on one CPU core. To manage this extensive computational demand efficiently, we conducted encrypted inference tests in parallel using multi-core systems.
 
-To generate Figures 5-7 and Table 9, the process will take approximately 18 hours.
+To generate Figures 5-7 and Table 9, the process will take **approximately 18 hours**.
 
-Reproducing Table 10 presents a significant challenge due to the computational intensity required for artifact evaluation. To facilitate this, we have provided a script that generates the table using only 10 images per model. On a computing platform equipped with 10 cores (details provided below), completing this process is expected to take approximately 7 hours. Please note, however, that the results obtained with this abbreviated method should be considered approximate. For those who wish to conduct tests using 1,000 images per model, please be aware that this extended evaluation will take over 140 hours on a 64-core platform.
+Reproducing Table 10 presents a significant challenge due to the computational intensity required for artifact evaluation. To facilitate this, we have provided a script that generates the table using only 10 images per model. On a computing platform equipped with 10 cores (details provided below), completing this process is expected to take **approximately 7 hours**. Please note, however, that the results obtained with this abbreviated method should be considered approximate. For those who wish to conduct tests using 1,000 images per model, please be aware that this extended evaluation will take **over 140 hours** on a 64-core platform.
 
 
 *It is important to note that, like existing FHE compilers, the ACE compiler produces accuracy for encrypted inference that is comparable to unencrypted inference. Table 10 does not, in itself, represent a contribution in this paper but is included for completeness. Table 9 simply lists the security parameters used by the ACE compiler. The major results of this paper are presented in Figures 5-7, where Figures 6 and 7 compare the ACE compiler with expert hand-tuned implementations in terms of encrypted inference time and memory usage.*
@@ -35,7 +35,7 @@ To facilitate artifact evaluation, we provide detailed steps, environment setup,
 - Detailed in the [*Dockerfile*](Dockerfile) for Docker container version 25.0.1  
 - Docker image based on Ubuntu 20.04
 
-Encrypted inference is both compute-intensive and memory-intensive. A computer with at least 400GB of memory is required to perform artifact evaluation for our work.
+Encrypted inference is both compute-intensive and memory-intensive. A computer with at least **400GB** of memory is required to perform artifact evaluation for our work.
 
 
 ## Repository Overview
@@ -88,7 +88,7 @@ For a given machine learning model, an ACE test refers to a test conducted using
 
 All pre-trained ONNX models utilized by the ACE compiler are located in the [*model*](model) directory.
 
-*Note: For the hardware environment outlined above, it will take approximately 5 hours to complete all the ACE tests and around 13 hours to complete all the EXPERT tests (using a single thread).*
+*Note: For the hardware environment outlined above, it will take **approximately 5 hours** to complete all the ACE tests and **around 13 hours** to complete all the EXPERT tests (using a single thread).*
 
 #### 3.1 Building EXPERT Hand-Tuned Implementations
 
@@ -162,7 +162,7 @@ In the `/app` directory of the container, run:
 ```
 python3 /app/scripts/accuracy_all.py -n 10
 ```
-This process will concurrently conduct encrypted inference tests on the first 10 images (indexed from 0 to 9) for each of the six ResNet models considered in the paper, leveraging all available CPU cores on the system. Similarly, unencrypted inference tests will be performed in parallel. With 10 cores assumed to be available, the expected completion time is approximately 7 hours. Upon completion, you will observe the following:
+This process will concurrently conduct encrypted inference tests on the first 10 images (indexed from 0 to 9) for each of the six ResNet models considered in the paper, leveraging all available CPU cores on the system. Similarly, unencrypted inference tests will be performed in parallel. With 10 cores assumed to be available, the expected completion time is **approximately 7 hours**. Upon completion, you will observe the following:
 ```
 Table10.pdf generated!
 root@xxxxxx:/app#
@@ -177,7 +177,7 @@ To run both unencrypted and encrypted inference tests for the first 1000 images 
 ```
 python3 /app/scripts/accuracy_all.py -n 1000
 ```
-This process will take over 140 hours to complete on the recommended computing platform, utilizing 64 threads.
+This process will take **over 140 hours** to complete on the recommended computing platform, utilizing 64 threads.
 
 The resulting output, `Table10.pdf`, will appear as follows:
 ![Table10](scripts/Table10.png)
