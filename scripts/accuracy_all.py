@@ -6,9 +6,11 @@ import argparse
 import matplotlib.pyplot as plt
 import subprocess
 import datetime
+import shutil
 
 MODELS = ['ResNet-20', 'ResNet-32', 'ResNet-32*', 'ResNet-44', 'ResNet-56', 'ResNet-110']
 INDEXES = ['resnet20_cifar10', 'resnet32_cifar10', 'resnet32_cifar100', 'resnet44_cifar10', 'resnet56_cifar10', 'resnet110_cifar10']
+TABLE10 = 'Table10.pdf'
 
 def write_log(info, log):
     print(info[:-1])
@@ -39,9 +41,9 @@ def generate_accuracy(raw_acc, ace_acc, log):
              colLabels=['Model', 'Unencrypted', 'Encrypted', 'Accuracy Gain'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
-    plt.savefig('Table10.pdf')
+    plt.savefig(TABLE10)
     plt.close()
-    info = 'Table10.pdf generated!\n'
+    info = '%s generated!\n' % TABLE10
     write_log(info, log)
     return
 
@@ -167,6 +169,9 @@ def main():
     write_log(info, log)
     generate_accuracy(raw_acc, ace_acc, log)
     log.close()
+    res_dir = '/app/ace_ae_result'
+    if os.path.exists(res_dir):
+        shutil.copyfile(TABLE10, os.path.join(res_dir, TABLE10))
     return
 
 if __name__ == "__main__":

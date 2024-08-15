@@ -6,6 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import shutil
 
 ACE='ACE'
 EXPERT='Expert'
@@ -36,6 +37,11 @@ MYOTHER='#D79B00'
 MYYELLOW='#FFFF88'
 MYPINK='#FFCCCC'
 MYPURPLE='#9673A6'
+
+FIGURE5='Figure5.pdf'
+FIGURE6='Figure6.pdf'
+FIGURE7='Figure7.pdf'
+TABLE9='Table9.pdf'
 
 BARWIDTH = 0.45
 INDEXACE = np.arange(len(MODELS))
@@ -96,9 +102,9 @@ def generate_comp_time(result):
     for a, b in zip(idx, ace_compile_time):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('Figure5.pdf')
+    plt.savefig(FIGURE5)
     plt.close()
-    print('Figure5.pdf generated!')
+    print('%s generated!' % FIGURE5)
     return
 
 def generate_exec_time(result):
@@ -177,9 +183,9 @@ def generate_exec_time(result):
     for a, b in zip(idx+BARWIDTH, exp_exec_time):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('Figure6.pdf', pad_inches=0)
+    plt.savefig(FIGURE6, pad_inches=0)
     plt.close()
-    print('Figure6.pdf generated!')
+    print('%s generated!' % FIGURE6)
     return
 
     # Print out analysis info
@@ -252,9 +258,9 @@ def generate_exec_mem(result):
     for a, b in zip(idx+BARWIDTH, exp_mem):
         plt.text(a, b, b, ha='center', va='bottom', weight='bold', fontsize='large')
 
-    plt.savefig('Figure7.pdf')
+    plt.savefig(FIGURE7)
     plt.close()
-    print('Figure7.pdf generated!')
+    print('%s generated!' % FIGURE7)
     return
 
     # Print out analysis info
@@ -292,9 +298,9 @@ def generate_sec_param(result):
              colLabels=['Model', 'log\u2082(N)', 'log\u2082(Q\u2080)', 'log\u2082(\u0394)'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
-    plt.savefig('Table9.pdf', pad_inches=0)
+    plt.savefig(TABLE9, pad_inches=0)
     plt.close()
-    print('Table9.pdf generated!')
+    print('%s generated!' % TABLE9)
     return
 
 def generate_figures(result):
@@ -430,6 +436,12 @@ def main():
     exp_log_file.close()
     # generate figures
     generate_figures(result)
+    res_dir = '/app/ace_ae_result'
+    if os.path.exists(res_dir):
+        shutil.copyfile(FIGURE5, os.path.join(res_dir, FIGURE5))
+        shutil.copyfile(FIGURE6, os.path.join(res_dir, FIGURE6))
+        shutil.copyfile(FIGURE7, os.path.join(res_dir, FIGURE7))
+        shutil.copyfile(TABLE9, os.path.join(res_dir, TABLE9))
     return
 
 if __name__ == "__main__":

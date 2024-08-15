@@ -53,10 +53,12 @@ Encrypted inference is both compute-intensive and memory-intensive. A computer w
 
 It is recommended to pull the pre-built docker image (opencc/ace:latest) from Docker Hub:
 ```
+cd [YOUR_DIR_TO_DO_AE]
+mkdir -p ace_ae_result
 docker pull opencc/ace:latest
-docker run -it --name ace --privileged opencc/ace:latest bash
+docker run -it --name ace -v "$(pwd)"/ace_ae_result:/app/ace_ae_result --privileged opencc/ace:latest bash
 ```
-The container will launch and automatically enters the `/app` directory:
+A local directory `ace_ae_result` is created and mounted in the docker container to collect the generated figures and tables. The container will launch and automatically enters the `/app` directory:
 ```
 root@xxxxxx:/app#
 ```
@@ -65,8 +67,9 @@ Alternatively, if you encounter issues pulling the pre-built image, you can buil
 cd [YOUR_DIR_TO_DO_AE]
 git clone https://github.com/ace-compiler/ace-compiler.git
 cd ace-compiler
+mkdir -p ace_ae_result
 docker build -t ace:latest .
-docker run -it --name ace --privileged ace:latest bash
+docker run -it --name ace -v "$(pwd)"/ace_ae_result:/app/ace_ae_result --privileged ace:latest bash
 ```
 
 ### 2. Building the ACE Compiler
