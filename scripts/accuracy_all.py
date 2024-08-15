@@ -54,19 +54,19 @@ def run_raw_accuracy(image_num, log, debug):
     acc_res = []
     cifar_path = '/app/cifar'
     if not os.path.exists(cifar_path):
-        print(cifar_path, 'does not exist!')
+        write_log('%s does not exist!\n' % cifar_path, log)
         sys.exit(-1)
     cifar10_script = '/app/scripts/infer_model.py'
     if not os.path.exists(cifar10_script):
-        print(script, 'does not exist!')
+        write_log('%s does not exist!\n' % cifar10_script, log)
         sys.exit(-1)
     cifar100_script = '/app/scripts/infer_model_cifar100.py'
     if not os.path.exists(cifar100_script):
-        print(script, 'does not exist!')
+        write_log('%s does not exist!\n' % cifar100_script, log)
         sys.exit(-1)
     onnx_path = '/app/model'
     if not os.path.exists(onnx_path):
-        print(onnx_path, 'does not exist!')
+        write_log('%s does not exist!\n' % onnx_path, log)
         sys.exit(-1)
     model_files = [f for f in os.listdir(onnx_path) if os.path.isfile(os.path.join(onnx_path, f))]
     total_time = 0.0
@@ -81,11 +81,11 @@ def run_raw_accuracy(image_num, log, debug):
                 onnx_file = os.path.join(onnx_path, f)
                 break
         if not os.path.exists(onnx_file):
-            print(onnx_file, 'does not exists!')
+            write_log('%s does not exist!\n' % onnx_file, log)
             sys.exit(-1)
         cmds = ['time', '-f', '\"%e %M\"', 'python3', script, '--loader_onnx', onnx_file, '--datasets', cifar_path, '--images', str(image_num)]
         if debug:
-            print(' '.join(cmds))
+            write_log(' '.join(cmds) + '\n', log)
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
         info = '%s: Inference Failed!\n' % rn
@@ -113,18 +113,20 @@ def run_ace_accuracy(image_num, log, debug):
     acc_res = []
     script = '/app/scripts/accuracy.sh'
     if not os.path.exists(script):
-        print(script, 'does not exist!')
+        write_log('%s does not exist!\n' % script, log)
         sys.exit(-1)
     total_time = 0.0
     max_memory = 0.0
     for rn in INDEXES:
         cmds = ['time', '-f', '\"%e %M\"', script, rn, '0', str(image_num)]
         if debug:
-            print(' '.join(cmds))
+            write_log(' '.join(cmds) + '\n', log)
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
         err_log = '/app/release_openmp/' + rn + '.acc.0.' + str(image_num-1) + '.log'
         info = '%s: Inference Failed! Refer to \'%s\' for details.\n' % (rn, err_log)
+        if not os.path.exists(err_log):
+            write_log('Warning: %s does not exist!\n' % err_log, log)
         if ret.returncode == 0:
             rtime, rmemory = time_and_memory(ret.stderr.decode().splitlines()[0])
             time = float(rtime)
@@ -152,6 +154,10 @@ def main():
     args = parser.parse_args()
     debug = args.debug
     image_num = args.num
+    ace_cmplr = '/app/release_openmp/driver/fhe_cmplr'
+    if not os.path.exists(ace_cmplr):
+        print('ACE compiler %s does not exist! Please build OpenMP version of the ACE compiler first!' % ace_cmplr)
+        sys.exit(-1)
     date_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     log_file_name = date_time + '_acc_' + str(image_num) + '.log'
     log = open(os.path.join(os.getcwd(), log_file_name), 'w')

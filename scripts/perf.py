@@ -330,21 +330,21 @@ def main():
     if args.kpath is not None:
         kpath = os.path.abspath(args.kpath)
     if not os.path.exists(kpath):
-        print(kpath, 'does not exist')
+        print(kpath, 'does not exist! Please build EXPERT executables first!')
         sys.exit(-1)
     # ACE compiler path
     cmplr_path = '/app/ace_cmplr'
     if args.cmplr is not None:
         cmplr_path = os.path.abspath(args.cmplr)
     if not os.path.exists(cmplr_path):
-        print(cmplr_path, 'does not exist')
+        print(cmplr_path, 'does not exist! Please ACE compiler first!')
         sys.exit(-1)
     # ONNX model path
     onnx_path = '/app/model'
     if args.model is not None:
         onnx_path = os.path.abspath(args.model)
     if not os.path.exists(onnx_path):
-        print(onnx_path, 'does not exist')
+        print(onnx_path, 'does not exist! Pre-trained ONNX model files are missing!')
         sys.exit(-1)
     date_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     log_file_name = date_time + '.log'
