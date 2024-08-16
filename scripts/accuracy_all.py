@@ -10,7 +10,6 @@ import shutil
 
 MODELS = ['ResNet-20', 'ResNet-32', 'ResNet-32*', 'ResNet-44', 'ResNet-56', 'ResNet-110']
 INDEXES = ['resnet20_cifar10', 'resnet32_cifar10', 'resnet32_cifar100', 'resnet44_cifar10', 'resnet56_cifar10', 'resnet110_cifar10']
-TABLE10 = 'Table10.pdf'
 
 def write_log(info, log):
     print(info[:-1])
@@ -22,7 +21,7 @@ def time_and_memory(outputs):
     result = outputs.strip('"').split(' ')
     return result[0], result[1]
 
-def generate_accuracy(raw_acc, ace_acc, log):
+def generate_accuracy(raw_acc, ace_acc, table10_name, log):
     '''
     Generate accuracy table (Table 10 in paper)
     '''
@@ -41,9 +40,9 @@ def generate_accuracy(raw_acc, ace_acc, log):
              colLabels=['Model', 'Unencrypted', 'Encrypted', 'Accuracy Gain'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
-    plt.savefig(TABLE10)
+    plt.savefig(table10_name)
     plt.close()
-    info = '%s generated!\n' % TABLE10
+    info = '%s generated!\n' % table10_name
     write_log(info, log)
     return
 
@@ -156,6 +155,10 @@ def main():
     args = parser.parse_args()
     debug = args.debug
     image_num = args.num
+    table10_name = 'Table10'
+    if image_num != 1000:
+        table10_name += '-' + str(image_num) + '-ImagesOnly'
+    table10_name += '.pdf'
     ace_cmplr = '/app/release_openmp/driver/fhe_cmplr'
     if not os.path.exists(ace_cmplr):
         print('ACE compiler %s does not exist! Please build OpenMP version of the ACE compiler first!' % ace_cmplr)
@@ -167,11 +170,11 @@ def main():
     ace_acc = run_ace_accuracy(image_num, log, debug)
     info = '-------- Accuracy Test Done --------\n'
     write_log(info, log)
-    generate_accuracy(raw_acc, ace_acc, log)
+    generate_accuracy(raw_acc, ace_acc, table10_name, log)
     log.close()
     res_dir = '/app/ace_ae_result'
     if os.path.exists(res_dir):
-        shutil.copyfile(TABLE10, os.path.join(res_dir, TABLE10))
+        shutil.copyfile(table10_name, os.path.join(res_dir, table10_name))
     return
 
 if __name__ == "__main__":

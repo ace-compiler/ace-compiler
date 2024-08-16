@@ -3,7 +3,7 @@ README
 
 We provide instructions to enable the evaluation of the artifact associated with our CGO'25 Tool Paper, titled "ACE: An FHE Compiler Framework for Automating Neural Network Inference." This paper presents ACE, an FHE compiler that converts ONNX models into equivalent FHE models to perform encrypted inference.
 
-ACE is the first FHE compiler to automatically compile ONNX models to C/C++ using CKKS for CPUs. It has been evaluated with various ResNet models, including ResNet110, the most complex used in FHE compiler research. Developed as an open-source tool with 44-man months of engineering from several experts, ACE is set to significantly benefit the compiler community in this critical area.
+Let us rephrase slightly a paragraph from our author response for this CGO'25 tool paper: ACE is the first FHE compiler to automatically compile ONNX models to C/C++ using the CKKS scheme for CPUs. It has been evaluated using a series of six ResNet models, including ResNet110, the most complex model employed in FHE compiler research. Developed as an open-source tool through 44 man-months of collaborative engineering by several experts, ACE is poised to significantly benefit the compiler community in this critical area.
 
 In our evaluation, we compared the ACE compiler with expert hand-tuned implementations using six ResNet models: ResNet-[20|32|44|56|110] on CIFAR-10 and ResNet-32 on CIFAR-100 (referred to as ResNet-32*). The objective of this artifact evaluation is to reproduce our results, presented in Figures 5-7 and Tables 9-10:
 - **Figure 5**: Compile times achieved by ACE
@@ -17,11 +17,11 @@ In our evaluation, we compared the ACE compiler with expert hand-tuned implement
 It is essential to emphasize that FHE remains up to 10,000 times slower than unencrypted computation, even for small machine learning models. To achieve the results presented in Table 10, we tested 1,000 images for each of the six ResNet models. Performing these tests would require approximately 5,000 hours (over 208 days) if conducted sequentially using a single thread on one CPU core. To manage this extensive computational demand efficiently, we conducted encrypted inference tests in parallel using multi-core systems.
 
 To generate Figures 5-7 and Table 9, the process will take **approximately 18 hours**.
+However, reproducing Table 10 presents a significant challenge due to the computational intensity required for artifact evaluation. To facilitate this, we have provided a script that generates the table using only 10 images per model. On a computing platform equipped with 10 cores (details provided below), completing this process is expected to take **approximately 7 hours**. Please note, however, that the results obtained with this abbreviated method should be considered approximate. For those who wish to conduct tests using 1,000 images per model, please be aware that this extended evaluation will take **over 140 hours** on a 64-core platform.
 
-Reproducing Table 10 presents a significant challenge due to the computational intensity required for artifact evaluation. To facilitate this, we have provided a script that generates the table using only 10 images per model. On a computing platform equipped with 10 cores (details provided below), completing this process is expected to take **approximately 7 hours**. Please note, however, that the results obtained with this abbreviated method should be considered approximate. For those who wish to conduct tests using 1,000 images per model, please be aware that this extended evaluation will take **over 140 hours** on a 64-core platform.
+*It is important to note that, like existing FHE compilers, the ACE compiler achieves accuracy in encrypted inference comparable to that of unencrypted inference. Table 10 is included for completeness and does not represent a contribution in this paper. Table 9 simply lists the security parameters used by the ACE compiler. The major results of this paper are presented in Figures 5-7: Figure 5 presents the compile times for the six ResNet models. Figures 6 and 7 compare the ACE compiler to expert hand-tuned implementations, focusing on per-image encrypted inference time and memory usage for each model, respectively.*
 
-
-*It is important to note that, like existing FHE compilers, the ACE compiler produces accuracy for encrypted inference that is comparable to unencrypted inference. Table 10 does not, in itself, represent a contribution in this paper but is included for completeness. Table 9 simply lists the security parameters used by the ACE compiler. The major results of this paper are presented in Figures 5-7, where Figures 6 and 7 compare the ACE compiler with expert hand-tuned implementations in terms of encrypted inference time and memory usage.*
+*Additionally, the ACE compiler compiles all six ResNet models within seconds. As a result, the Figure 5 you obtain may slightly differ from Figure 5 in our paper. Similarly, your Figure 6 and our Figure 6 may show minor variations. However, the overall trends in both Figures 5 and 6 will remain consistent.*
 
 
 To facilitate artifact evaluation, we provide detailed steps, environment setup, and execution guidelines to ensure that the findings of our research can be independently verified.
@@ -167,12 +167,12 @@ python3 /app/scripts/accuracy_all.py -n 10
 ```
 This process will concurrently conduct encrypted inference tests on the first 10 images (indexed from 0 to 9) for each of the six ResNet models considered in the paper, leveraging all available CPU cores on the system. Similarly, unencrypted inference tests will be performed in parallel. With 10 cores assumed to be available, the expected completion time is **approximately 7 hours**. Upon completion, you will observe the following:
 ```
-Table10.pdf generated!
+Table10-n-ImagesOnly.pdf generated!
 root@xxxxxx:/app#
 ```
 
 We have generated a version of Table 10 by testing only 10 images per model, as shown below:
-![Table10](scripts/Table10-10imagesonly.png)
+![Table10](scripts/Table10-10-ImagesOnly.png)
 
 Your version of Table 10 should closely resemble ours. Although these results differ from those reported in Table 10 of the paper, they already demonstrate that the accuracy achieved by encrypted inference under the ACE compiler is comparable to that achieved by unencrypted inference.
 
