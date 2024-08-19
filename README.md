@@ -1,7 +1,7 @@
 README
 ================
 
-We provide instructions to enable the evaluation of the artifact associated with our CGO'25 Tool Paper, titled "ACE: An FHE Compiler Framework for Automating Neural Network Inference." This paper presents ACE, an FHE compiler that converts ONNX models into equivalent FHE models to perform encrypted inference.
+We provide instructions to enable the evaluation of the artifact associated with our CGO'25 Tool Paper, titled "ACE: An FHE Compiler Framework for Automating Neural Network Inference." This paper presents ACE, an open-source FHE compiler that converts ONNX models into equivalent FHE models to perform encrypted inference(https://ace-compiler.github.io/).
 
 Let us rephrase slightly a paragraph from our author response for this CGO'25 tool paper: ACE is the first FHE compiler to automatically compile ONNX models to C/C++ using the CKKS scheme for CPUs. It has been evaluated using a series of six ResNet models, including ResNet110, the most complex model employed in FHE compiler research. Developed as an open-source tool through 44 man-months of collaborative engineering by several experts, ACE is poised to significantly benefit the compiler community in this critical area.
 
