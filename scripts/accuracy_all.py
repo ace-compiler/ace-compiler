@@ -8,8 +8,24 @@ import subprocess
 import datetime
 import shutil
 
-MODELS = ['ResNet-20', 'ResNet-32', 'ResNet-32*', 'ResNet-44', 'ResNet-56', 'ResNet-110']
-INDEXES = ['resnet20_cifar10', 'resnet32_cifar10', 'resnet32_cifar100', 'resnet44_cifar10', 'resnet56_cifar10', 'resnet110_cifar10']
+MODELS = ['ResNet-20',
+          'ResNet-32',
+          'ResNet-32*',
+          'ResNet-44',
+          'ResNet-56',
+          'ResNet-110']
+INDEXES = ['resnet20_cifar10',
+           'resnet32_cifar10',
+           'resnet32_cifar100',
+           'resnet44_cifar10',
+           'resnet56_cifar10',
+           'resnet110_cifar10']
+ONNX_FILES = ['resnet20_cifar10_pre.onnx',
+              'resnet32_cifar10_pre.onnx',
+              'resnet32_cifar100_pre.onnx',
+              'resnet44_cifar10_pre.onnx',
+              'resnet56_cifar10_pre.onnx',
+              'resnet110_cifar10_train.onnx']
 
 def write_log(info, log):
     print(info[:-1])
@@ -69,21 +85,20 @@ def run_raw_accuracy(image_num, log, debug):
     if not os.path.exists(onnx_path):
         write_log('%s does not exist!\n' % onnx_path, log)
         sys.exit(-1)
-    model_files = [f for f in os.listdir(onnx_path) if os.path.isfile(os.path.join(onnx_path, f))]
     total_time = 0.0
     max_memory = 0.0
-    for rn in INDEXES:
-        script = cifar10_script
-        if rn.find('cifar100') != -1:
-            script = cifar100_script
-        onnx_file = None
-        for f in model_files:
-            if f.find(rn) != -1:
-                onnx_file = os.path.join(onnx_path, f)
-                break
+    for i in range(len(INDEXES)):
+        rn = INDEXES[i]
+        onnx_file = os.path.join(onnx_path, ONNX_FILES[i])
         if not os.path.exists(onnx_file):
             write_log('%s does not exist!\n' % onnx_file, log)
             sys.exit(-1)
+        if onnx_file.find(rn + '_') == -1:
+            write_log('Model file %s does not match %s test!\n' % (onnx_file, rn), log)
+            sys.exit(-1)
+        script = cifar10_script
+        if rn.find('cifar100') != -1:
+            script = cifar100_script
         cmds = ['time', '-f', '\"%e %M\"', 'python3', script, '--loader_onnx', onnx_file, '--datasets', cifar_path, '--images', str(image_num)]
         if debug:
             write_log(' '.join(cmds) + '\n', log)
