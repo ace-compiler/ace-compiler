@@ -43,17 +43,17 @@ def generate_accuracy(raw_acc, ace_acc, table10_name, log):
     '''
     acc_gain = []
     for idx in range(len(ace_acc)):
-        gain = (ace_acc[idx] - raw_acc[idx]) * 100 / raw_acc[idx]
-        gain = "%.1f" % round(gain, 1)
-        acc_gain.append(gain + '%')
+        gain = (raw_acc[idx]- ace_acc[idx]) * 100 / raw_acc[idx]
+        gain = "%.1f%%" % round(gain, 1)
+        acc_gain.append(gain)
     rows = []
     for idx in range(len(ace_acc)):
-        rows.append([MODELS[idx], str(raw_acc[idx]) + '%', str(ace_acc[idx]) + '%', acc_gain[idx]])
+        rows.append([MODELS[idx], "%.1f%%" % raw_acc[idx], "%.1f%%" % ace_acc[idx], acc_gain[idx]])
 
     fig, ax = plt.subplots()
     ax.axis('off')
     ax.table(cellText=rows, \
-             colLabels=['Model', 'Unencrypted', 'Encrypted', 'Accuracy Gain'], \
+             colLabels=['Model', 'Unencrypted', 'Encrypted', 'Accuracy Loss'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
     plt.savefig(table10_name)
@@ -62,7 +62,7 @@ def generate_accuracy(raw_acc, ace_acc, table10_name, log):
     write_log(info, log)
     return
 
-def run_raw_accuracy(image_num, log, debug):
+def run_raw_accuracy(image_num, log):
     '''
     Run unencrypted accuracy test for all models with given image numbers
     '''
@@ -100,11 +100,10 @@ def run_raw_accuracy(image_num, log, debug):
         if rn.find('cifar100') != -1:
             script = cifar100_script
         cmds = ['time', '-f', '\"%e %M\"', 'python3', script, '--loader_onnx', onnx_file, '--datasets', cifar_path, '--images', str(image_num)]
-        if debug:
-            write_log(' '.join(cmds) + '\n', log)
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        accuracy = 0.0
+        accuracy = 1.0
         info = '%s: Inference Failed!\n' % rn
+        info += ' ' * (len(rn)+2) + ' '.join(cmds) + '\n'
         if ret.returncode == 0:
             rtime, rmemory = time_and_memory(ret.stderr.decode().splitlines()[0])
             time = float(rtime)
@@ -120,7 +119,7 @@ def run_raw_accuracy(image_num, log, debug):
     write_log(info, log)
     return acc_res
 
-def run_ace_accuracy(image_num, log, debug):
+def run_ace_accuracy(image_num, log):
     '''
     Run ACE accuracy test for all models with given image numbers
     '''
@@ -135,12 +134,11 @@ def run_ace_accuracy(image_num, log, debug):
     max_memory = 0.0
     for rn in INDEXES:
         cmds = ['time', '-f', '\"%e %M\"', script, rn, '0', str(image_num)]
-        if debug:
-            write_log(' '.join(cmds) + '\n', log)
         ret = subprocess.run(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         accuracy = 0.0
         err_log = '/app/release_openmp/' + rn + '.acc.0.' + str(image_num-1) + '.log'
         info = '%s: Inference Failed! Refer to \'%s\' for details.\n' % (rn, err_log)
+        info += ' ' * (len(rn)+2) + ' '.join(cmds) + '\n'
         if not os.path.exists(err_log):
             write_log('Warning: %s does not exist!\n' % err_log, log)
         if ret.returncode == 0:
@@ -166,9 +164,7 @@ def run_ace_accuracy(image_num, log, debug):
 def main():
     parser = argparse.ArgumentParser(description='Run accuracy data for ACE Framework')
     parser.add_argument('-n', '--num', type=int, default=10, help='Number of images to run for each model, ranges: [0, 10000]')
-    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Print out debug info')
     args = parser.parse_args()
-    debug = args.debug
     image_num = args.num
     table10_name = 'Table10'
     if image_num != 1000:
@@ -181,8 +177,8 @@ def main():
     date_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     log_file_name = date_time + '_acc_' + str(image_num) + '.log'
     log = open(os.path.join(os.getcwd(), log_file_name), 'w')
-    raw_acc = run_raw_accuracy(image_num, log, debug)
-    ace_acc = run_ace_accuracy(image_num, log, debug)
+    raw_acc = run_raw_accuracy(image_num, log)
+    ace_acc = run_ace_accuracy(image_num, log)
     info = '-------- Accuracy Test Done --------\n'
     write_log(info, log)
     generate_accuracy(raw_acc, ace_acc, table10_name, log)
