@@ -37,9 +37,9 @@ def time_and_memory(outputs):
     result = outputs.strip('"').split(' ')
     return result[0], result[1]
 
-def generate_accuracy(raw_acc, ace_acc, table10_name, log):
+def generate_accuracy(raw_acc, ace_acc, table11_name, log):
     '''
-    Generate accuracy table (Table 10 in paper)
+    Generate accuracy table (Table 11 in paper)
     '''
     acc_gain = []
     for idx in range(len(ace_acc)):
@@ -56,9 +56,9 @@ def generate_accuracy(raw_acc, ace_acc, table10_name, log):
              colLabels=['Model', 'Unencrypted', 'Encrypted', 'Accuracy Loss'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
-    plt.savefig(table10_name)
+    plt.savefig(table11_name)
     plt.close()
-    info = '%s generated!\n' % table10_name
+    info = '%s generated!\n' % table11_name
     write_log(info, log)
     return
 
@@ -166,10 +166,10 @@ def main():
     parser.add_argument('-n', '--num', type=int, default=10, help='Number of images to run for each model, ranges: [0, 10000]')
     args = parser.parse_args()
     image_num = args.num
-    table10_name = 'Table10'
+    table11_name = 'Table11'
     if image_num != 1000:
-        table10_name += '-' + str(image_num) + '-ImagesOnly'
-    table10_name += '.pdf'
+        table11_name += '-' + str(image_num) + '-ImagesOnly'
+    table11_name += '.pdf'
     ace_cmplr = '/app/release_openmp/driver/fhe_cmplr'
     if not os.path.exists(ace_cmplr):
         print('ACE compiler %s does not exist! Please build OpenMP version of the ACE compiler first!' % ace_cmplr)
@@ -181,11 +181,11 @@ def main():
     ace_acc = run_ace_accuracy(image_num, log)
     info = '-------- Accuracy Test Done --------\n'
     write_log(info, log)
-    generate_accuracy(raw_acc, ace_acc, table10_name, log)
+    generate_accuracy(raw_acc, ace_acc, table11_name, log)
     log.close()
     res_dir = '/app/ace_ae_result'
     if os.path.exists(res_dir):
-        shutil.copyfile(table10_name, os.path.join(res_dir, table10_name))
+        shutil.copyfile(table11_name, os.path.join(res_dir, table11_name))
     return
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ MYPURPLE='#9673A6'
 FIGURE5='Figure5.pdf'
 FIGURE6='Figure6.pdf'
 FIGURE7='Figure7.pdf'
-TABLE9='Table9.pdf'
+TABLE10='Table10.pdf'
 
 BARWIDTH = 0.45
 INDEXACE = np.arange(len(MODELS))
@@ -298,9 +298,9 @@ def generate_sec_param(result):
              colLabels=['Model', 'log\u2082(N)', 'log\u2082(Q\u2080)', 'log\u2082(\u0394)'], \
              cellLoc='center', loc='center')
     fig.tight_layout()
-    plt.savefig(TABLE9, pad_inches=0)
+    plt.savefig(TABLE10, pad_inches=0)
     plt.close()
-    print('%s generated!' % TABLE9)
+    print('%s generated!' % TABLE10)
     return
 
 def generate_figures(result):
@@ -441,7 +441,7 @@ def main():
         shutil.copyfile(FIGURE5, os.path.join(res_dir, FIGURE5))
         shutil.copyfile(FIGURE6, os.path.join(res_dir, FIGURE6))
         shutil.copyfile(FIGURE7, os.path.join(res_dir, FIGURE7))
-        shutil.copyfile(TABLE9, os.path.join(res_dir, TABLE9))
+        shutil.copyfile(TABLE10, os.path.join(res_dir, TABLE10))
     return
 
 if __name__ == "__main__":
